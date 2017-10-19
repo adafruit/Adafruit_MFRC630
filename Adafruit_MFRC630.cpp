@@ -27,13 +27,30 @@
  CONSTRUCTOR
  ***************************************************************************/
 
+ /**************************************************************************/
+ /*!
+     @brief  Instantiates a new instance of the Adafruit_MFRC630 class
+ */
+ /**************************************************************************/
+ Adafruit_MFRC630::Adafruit_MFRC630(uint8_t i2c_addr)
+ {
+   /* Set the I2C bus instance */
+   _wire = &Wire;
+
+   /* Set the I2C address */
+   _i2c_addr = i2c_addr;
+ }
+
 /**************************************************************************/
 /*!
     @brief  Instantiates a new instance of the Adafruit_MFRC630 class
 */
 /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(uint8_t i2c_addr)
+Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, uint8_t i2c_addr)
 {
+  /* Set the I2C bus instance */
+  _wire = wireBus;
+
   /* Set the I2C address */
   _i2c_addr = i2c_addr;
 }
@@ -51,7 +68,7 @@ bool Adafruit_MFRC630::begin()
 {
   /* Enable I2C */
   DEBUG_PRINTLN("Initialising I2C");
-  Wire.begin();
+  _wire->begin();
 
   /* Check device ID for bus response */
   DEBUG_PRINT("Checking I2C address 0x");

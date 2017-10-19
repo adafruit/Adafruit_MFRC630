@@ -18,14 +18,14 @@
 
 #include "Arduino.h"
 #include <Wire.h>
+#include "Adafruit_MFRC630_regs.h"
 
-#define MFRC630_I2C_ADDR              (0x28)   // Default value
+#define MFRC630_I2C_ADDR              (0x28)
 
-#define MFRC630_VERBOSITY_RELEASE     (0)   // No debug output
-#define MFRC630_VERBOSITY_DEBUG       (1)   // Debug message output
-#define MFRC630_VERBOSITY_TRACE       (2)   // Full packet trace dumps
-
-/* Set the debug output level here */
+/* Set the debug output level */
+#define MFRC630_VERBOSITY_RELEASE     (0)   /* No debug output */
+#define MFRC630_VERBOSITY_DEBUG       (1)   /* Debug message output */
+#define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
 #define MFRC630_VERBOSITY = MFRC630_VERBOSITY_DEBUG;
 
 /* Macro for debug output */
@@ -50,10 +50,12 @@ class Adafruit_MFRC630
 {
   public:
     Adafruit_MFRC630(uint8_t i2c_addr = MFRC630_I2C_ADDR);
+    Adafruit_MFRC630(TwoWire* wireBus, uint8_t i2c_addr = MFRC630_I2C_ADDR);
     bool begin(void);
 
   private:
     uint8_t _i2c_addr;
+    TwoWire* _wire;
 };
 
 #endif
