@@ -71,7 +71,7 @@ enum mfrc630reg
   MFRC630_REG_TX_WAIT_LO              = 0x32,
   MFRC630_REG_FRAME_CON               = 0x33,
   MFRC630_REG_RX_SOFD                 = 0x34,
-  MFRC630_REG_RX_BIT_CTRL             = 0x35,
+  MFRC630_REG_RX_CTRL                 = 0x35,
   MFRC630_REG_RX_WAIT                 = 0x36,
   MFRC630_REG_RX_THRESHOLD            = 0x37,
   MFRC630_REG_RCV                     = 0x38,
