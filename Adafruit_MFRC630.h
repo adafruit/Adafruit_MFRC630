@@ -26,7 +26,7 @@
 #define MFRC630_VERBOSITY_RELEASE     (0)   /* No debug output */
 #define MFRC630_VERBOSITY_DEBUG       (1)   /* Debug message output */
 #define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
-#define MFRC630_VERBOSITY = MFRC630_VERBOSITY_DEBUG;
+#define MFRC630_VERBOSITY = MFRC630_VERBOSITY_TRACE;
 
 /* Macro for debug output */
 #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_DEBUG
@@ -41,9 +41,13 @@
 #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   #define TRACE_PRINT(...)   Serial.print(__VA_ARGS__)
   #define TRACE_PRINTLN(...) Serial.println(__VA_ARGS__)
+  #define TRACE_TIMESTAMP()  Serial.print("["); \
+                             Serial.print(millis()); \
+                             Serial.print("] ");
 #else
   #define TRACE_PRINT(...)
   #define TRACE_PRINTLN(...)
+  #define TRACE_TIMESTAMP(...)
 #endif
 
 class Adafruit_MFRC630
@@ -56,6 +60,10 @@ class Adafruit_MFRC630
   private:
     uint8_t _i2c_addr;
     TwoWire* _wire;
+
+    void write8(byte reg, byte value);
+    byte read8(byte reg);
+    byte readBuffer(byte reg, byte len, uint8_t *buffer);
 };
 
 #endif
