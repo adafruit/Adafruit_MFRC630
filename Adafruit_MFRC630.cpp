@@ -43,6 +43,30 @@ void Adafruit_MFRC630::write8(byte reg, byte value)
 
 /**************************************************************************/
 /*!
+    @brief  Write a buffer to the specified register
+*/
+/**************************************************************************/
+void Adafruit_MFRC630::writeBuffer(byte reg, byte len, uint8_t *buffer)
+{
+  uint8_t i;
+
+  TRACE_TIMESTAMP();
+  TRACE_PRINT("WRITING ");
+  TRACE_PRINT(len);
+  TRACE_PRINT(" byte(s) to 0x");
+  TRACE_PRINTLN(reg, HEX);
+
+  _wire->beginTransmission(_i2c_addr);
+  _wire->write(reg);
+  for (i = 0; i < len; i++)
+  {
+    _wire->write(buffer[0]);
+  }
+  _wire->endTransmission();
+}
+
+/**************************************************************************/
+/*!
     @brief  Read a byte from the specified register
 */
 /**************************************************************************/
@@ -188,7 +212,7 @@ bool Adafruit_MFRC630::begin()
     return false;
   }
 
-  /* If !1.8, there was a problem (or never chips?!?) */
+  /* If !1.8, there was a problem */
   if (ver != 0x18)
   {
     DEBUG_TIMESTAMP();
@@ -203,4 +227,90 @@ bool Adafruit_MFRC630::begin()
   DEBUG_PRINTLN(ver & 0x0F, HEX);
 
   return true;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Determines the number of bytes in the HW FIFO buffer (max 512)
+
+    @returns The number of bytes available in the HW FIFO buffer
+*/
+/**************************************************************************/
+int16_t Adafruit_MFRC630::readFIFOLen(void)
+{
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Checking FIFO length");
+
+  /* Read the MFRC630_REG_FIFO_LENGTH register */
+  /* In 512 byte mode, the upper two bits are stored in FIFO_CONTROL */
+  byte hi = read8(MFRC630_REG_FIFO_CONTROL);
+  byte lo = read8(MFRC630_REG_FIFO_LENGTH);
+
+  /* Determine len based on FIFO size (255 byte or 512 byte mode) */
+  int16_t l = (hi & 0x80) ? lo : (((hi & 0x3) << 8) | lo);
+
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("FIFO contains ");
+  DEBUG_PRINT(l);
+  DEBUG_PRINTLN(" bytes");
+
+  return l;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Read 'len' bytes from the HW FIFO buffer (max 512 bytes)
+
+    @returns The number of bytes read from the FIFO, or -1 if an error occured.
+*/
+/**************************************************************************/
+int16_t Adafruit_MFRC630::readFIFO(uint16_t len, uint8_t *buffer)
+{
+  int16_t counter = 0;
+
+  /* Check for 512 byte overflow */
+  if (len > 512)
+  {
+    return -1;
+  }
+
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("Reading ");
+  DEBUG_PRINT(len);
+  DEBUG_PRINTLN(" bytes from FIFO");
+
+  /* Read len bytes from the FIFO */
+  for (uint16_t i = 0; i < len; i++)
+  {
+    buffer[i] = read8(MFRC630_REG_FIFO_DATA);
+    counter++;
+  }
+
+  return counter;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Writes a parameter-less command to the internal state machine
+*/
+/**************************************************************************/
+void Adafruit_MFRC630::writeCommand(byte command)
+{
+  uint8_t buff[1] = { command };
+
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("Sending CMD 0x");
+  DEBUG_PRINTLN(command, HEX);
+
+  writeBuffer(MFRC630_REG_COMMAND, 1, buff);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Writes a parametered command to the internal state machine
+*/
+/**************************************************************************/
+void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen, uint8_t *params)
+{
+
 }

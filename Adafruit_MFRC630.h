@@ -45,7 +45,7 @@
 #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   #define TRACE_PRINT(...)   Serial.print(__VA_ARGS__)
   #define TRACE_PRINTLN(...) Serial.println(__VA_ARGS__)
-  #define TRACE_TIMESTAMP()  Serial.print("\tT [+"); \
+  #define TRACE_TIMESTAMP()  Serial.print("\t. [+"); \
                              Serial.print(millis()); \
                              Serial.print("ms] ");
 #else
@@ -61,12 +61,19 @@ class Adafruit_MFRC630
     Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
     bool begin(void);
 
+    int16_t readFIFOLen(void);
+    int16_t readFIFO(uint16_t len, uint8_t *buffer);
+
+    void writeCommand(byte command);
+    void writeCommand(byte command, uint8_t paramlen, uint8_t *params);
+
   private:
     int8_t _pdown;
     uint8_t _i2c_addr;
     TwoWire* _wire;
 
     void write8(byte reg, byte value);
+    void writeBuffer(byte reg, byte len, uint8_t *buffer);
     byte read8(byte reg);
     byte readBuffer(byte reg, byte len, uint8_t *buffer);
 };

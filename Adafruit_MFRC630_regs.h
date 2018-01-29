@@ -93,4 +93,25 @@ enum mfrc630reg
   MFRC630_REG_VERSION                 = 0x7F
 };
 
+/* See Table 7.10.2: Command Set */
+enum mfrc630cmd
+{
+  MFRC630_CMD_IDLE                    = 0x00, /**< Cancels current command */
+  MFRC630_CMD_LPCD                    = 0x01, /**< Low power card detection */
+  MFRC630_CMD_LOADKEY                 = 0x02, /**< Reads a 6 byte MIFARE key and puts it into KEY BUFFER */
+  MFRC630_CMD_MFAUTHENT               = 0x03, /**< Performs Mifare Classic authentication */
+  MFRC630_CMD_RECEIVE                 = 0x05, /**< Activates the receive circuit */
+  MFRC630_CMD_TRANSMIT                = 0x06, /**< Transmits data from the FIFO buffer */
+  MFRC630_CMD_TRANSCEIVE              = 0x07, /**< Transmits data from the FIFO buffer and automatically activates the receive buffer when finished */
+  MFRC630_CMD_WRITEE2                 = 0x08, /**< Gets 1 byte from FIFO and writes to EEPROM */
+  MFRC630_CMD_WRITEE2PAGE             = 0x09, /**< Gets up to 64 bytes from FIFO and writes to EEPROM */
+  MFRC630_CMD_READE2                  = 0x0A, /**< Reads data from EEPROM and copies it into the FIFO buffer */
+  MFRC630_CMD_LOADREG                 = 0x0C, /**< Reads data from the internal EEPROM and initializes the MFRC630 registers. EEPROM address needs to be within EEPROM sector 2 */
+  MFRC630_CMD_LOADPROTOCOL            = 0x0D, /**< Reads data from the internal EEPROM and initializes the MFRC630 registers needed for a protocol change. */
+  MFRC630_CMD_LOADKEYE2               = 0x0E, /**< Copies a key from EEPROM into the key buffer */
+  MFRC630_CMD_STOREKEYE2              = 0x0F, /**< Stores a MIFARE key (6 bytes) into EEPROM */
+  MFRC630_CMD_READRNR                 = 0x1C, /**< Copies bytes from the random number generator into the FIFO buffer until the FIFO is full */
+  MFRC630_CMD_SOFTRESET               = 0x1F  /**< SW resets the MFRC630 */
+};
+
 #endif
