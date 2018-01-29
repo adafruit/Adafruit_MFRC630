@@ -1,8 +1,10 @@
 #include <Wire.h>
 #include <Adafruit_MFRC630.h>
 
+#define PDOWN_PIN     (27)
+
 /* Use the default I2C address */
-Adafruit_MFRC630 rfid = Adafruit_MFRC630(27);
+Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
 
 void setup() {
   Serial.begin(115200);
