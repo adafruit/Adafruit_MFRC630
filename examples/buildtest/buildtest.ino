@@ -82,6 +82,37 @@ void fifo_clear_test(void)
   Serial.println(len);
 }
 
+void status_test(void)
+{
+  Serial.println("Reading COM Status");
+  uint8_t stat = rfid.getComStatus();
+
+  switch (stat)
+  {
+    case MFRC630_COMSTAT_IDLE:
+      Serial.println("IDLE");
+      break;
+    case MFRC630_COMSTAT_TXWAIT:
+      Serial.println("TX WAIT");
+      break;
+    case MFRC630_COMSTAT_TRANSMITTING:
+      Serial.println("TRANSMITTING");
+      break;
+    case MFRC630_COMSTAT_RXWAIT:
+      Serial.println("RX WAIT");
+      break;
+    case MFRC630_COMSTAT_WAITFORDATA :
+      Serial.println("WAITING FOR DATA");
+      break;
+    case MFRC630_COMSTAT_RECEIVING:
+      Serial.println("RECEIVING");
+      break;
+    default:
+      Serial.println("UKNOWN!");
+      break;
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("");
@@ -104,7 +135,10 @@ void setup() {
   /* FIFO tests */
   // fifo_read_test();
   // fifo_write_test();
-  fifo_clear_test();
+  // fifo_clear_test();
+
+  /* General HW tests */
+  status_test();
 }
 
 void loop() {

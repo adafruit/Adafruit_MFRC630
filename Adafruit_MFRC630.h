@@ -68,6 +68,9 @@ class Adafruit_MFRC630
     int16_t writeFIFO(uint16_t len, uint8_t *buffer);
     void    clearFIFO(void);
 
+    /* General helpers */
+    uint8_t getComStatus(void);
+
     /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);
     void writeCommand(byte command, uint8_t paramlen, uint8_t *params);

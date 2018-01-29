@@ -370,3 +370,13 @@ void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen, uint8_t *par
      - Each command may be stopped by the host by writing a new command code
        into the command register e.g.: the Idle-Command. */
 }
+
+/**************************************************************************/
+/*!
+    @brief  Gets the three bit COM status for the IC
+*/
+/**************************************************************************/
+uint8_t Adafruit_MFRC630::getComStatus(void)
+{
+  return (read8(MFRC630_REG_STATUS) & 0b111);
+}

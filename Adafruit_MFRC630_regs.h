@@ -117,4 +117,15 @@ enum mfrc630cmd
   MFRC630_CMD_SOFTRESET               = 0x1F  /**< SW resets the MFRC630 */
 };
 
+/* 'ComState' values for for the MFRC630_REG_STATUS register (0x0B) */
+enum mfrc630comstat
+{
+  MFRC630_COMSTAT_IDLE                = 0b000, /**< IDLE */
+  MFRC630_COMSTAT_TXWAIT              = 0b001, /**< TX Wait */
+  MFRC630_COMSTAT_TRANSMITTING        = 0b011, /**< Transmitting */
+  MFRC630_COMSTAT_RXWAIT              = 0b101, /**< RX Wait */
+  MFRC630_COMSTAT_WAITFORDATA         = 0b110, /**< Waiting for DATA */
+  MFRC630_COMSTAT_RECEIVING           = 0b111  /**< Receiving */
+};
+
 #endif
