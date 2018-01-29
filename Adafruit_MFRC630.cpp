@@ -154,12 +154,14 @@ Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin, uint8_t i
 bool Adafruit_MFRC630::begin()
 {
   /* Enable I2C */
+  DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("Initialising I2C");
   _wire->begin();
 
   /* Reset the MFRC630 if possible */
   if (_pdown != -1)
   {
+    DEBUG_TIMESTAMP();
     DEBUG_PRINTLN("Resetting MFRC630");
     pinMode(_pdown, OUTPUT);
     digitalWrite(_pdown, HIGH);
@@ -171,6 +173,7 @@ bool Adafruit_MFRC630::begin()
   }
 
   /* Check device ID for bus response */
+  DEBUG_TIMESTAMP();
   DEBUG_PRINT("Checking I2C address 0x");
   DEBUG_PRINTLN(_i2c_addr, HEX);
 
@@ -180,6 +183,7 @@ bool Adafruit_MFRC630::begin()
   /* If ver == 0xFF likely an I2C bus failure */
   if (ver == 0xFF)
   {
+    DEBUG_TIMESTAMP();
     DEBUG_PRINTLN("I2C bus failure!");
     return false;
   }
@@ -187,10 +191,12 @@ bool Adafruit_MFRC630::begin()
   /* If !1.8, there was a problem (or never chips?!?) */
   if (ver != 0x18)
   {
+    DEBUG_TIMESTAMP();
     DEBUG_PRINTLN("FAILED!");
     return false;
   }
 
+  DEBUG_TIMESTAMP();
   DEBUG_PRINT("IC Version = ");
   DEBUG_PRINT((ver & 0xF0) >> 4, HEX);
   DEBUG_PRINT(".");

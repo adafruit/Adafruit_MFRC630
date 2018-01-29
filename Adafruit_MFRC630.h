@@ -32,16 +32,20 @@
 #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_DEBUG
   #define DEBUG_PRINT(...)   Serial.print(__VA_ARGS__)
   #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__)
+  #define DEBUG_TIMESTAMP()  Serial.print("\tD [+"); \
+                             Serial.print(millis()); \
+                             Serial.print("ms] ");
 #else
   #define DEBUG_PRINT(...)
   #define DEBUG_PRINTLN(...)
+  #define DEBUG_TIMESTAMP(...)
 #endif
 
 /* Macro for trace output */
 #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   #define TRACE_PRINT(...)   Serial.print(__VA_ARGS__)
   #define TRACE_PRINTLN(...) Serial.println(__VA_ARGS__)
-  #define TRACE_TIMESTAMP()  Serial.print("\t[+"); \
+  #define TRACE_TIMESTAMP()  Serial.print("\tT [+"); \
                              Serial.print(millis()); \
                              Serial.print("ms] ");
 #else
