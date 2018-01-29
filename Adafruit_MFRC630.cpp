@@ -29,13 +29,11 @@
  /**************************************************************************/
 void Adafruit_MFRC630::write8(byte reg, byte value)
 {
-  #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   TRACE_TIMESTAMP();
-  TRACE_PRINT("WRITE 0x");
+  TRACE_PRINT("WRITING 0x");
   TRACE_PRINT(value, HEX);
   TRACE_PRINT(" to 0x");
   TRACE_PRINTLN(reg, HEX);
-  #endif
 
   _wire->beginTransmission(_i2c_addr);
   _wire->write(reg);
@@ -66,13 +64,11 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
 {
   uint8_t i;
 
-  #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   TRACE_TIMESTAMP();
-  TRACE_PRINT("RQST ");
+  TRACE_PRINT("REQUESTING ");
   TRACE_PRINT(len);
   TRACE_PRINT(" byte(s) from 0x");
   TRACE_PRINTLN(reg, HEX);
-  #endif
 
   #ifdef __SAM3X8E__
     /* http://forum.arduino.cc/index.php?topic=385377.msg2947227#msg2947227 */
@@ -90,11 +86,10 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
     buffer[i] = _wire->read();
   }
 
-  #ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   TRACE_TIMESTAMP();
-  TRACE_PRINT("RESP ");
+  TRACE_PRINT("RESPONSE (len=");
   TRACE_PRINT(len);
-  TRACE_PRINT(" byte(s):");
+  TRACE_PRINT("):");
   for (i=0; i<len; i++)
   {
     TRACE_PRINT(" 0x");
@@ -105,7 +100,6 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
     TRACE_PRINT(buffer[i], HEX);
   }
   TRACE_PRINTLN("");
-  #endif
 
   return len;
 }
@@ -119,13 +113,16 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
      @brief  Instantiates a new instance of the Adafruit_MFRC630 class
  */
  /**************************************************************************/
- Adafruit_MFRC630::Adafruit_MFRC630(uint8_t i2c_addr)
+ Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, uint8_t i2c_addr)
  {
-   /* Set the I2C bus instance */
-   _wire = &Wire;
+   /* Set the PDOWN pin */
+   _pdown = pdown_pin;
 
    /* Set the I2C address */
    _i2c_addr = i2c_addr;
+
+   /* Set the I2C bus instance */
+   _wire = &Wire;
  }
 
 /**************************************************************************/
@@ -133,13 +130,16 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
     @brief  Instantiates a new instance of the Adafruit_MFRC630 class
 */
 /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, uint8_t i2c_addr)
+Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin, uint8_t i2c_addr)
 {
-  /* Set the I2C bus instance */
-  _wire = wireBus;
+  /* Set the PDOWN pin */
+  _pdown = pdown_pin;
 
   /* Set the I2C address */
   _i2c_addr = i2c_addr;
+
+  /* Set the I2C bus instance */
+  _wire = wireBus;
 }
 
 /***************************************************************************
@@ -157,6 +157,19 @@ bool Adafruit_MFRC630::begin()
   DEBUG_PRINTLN("Initialising I2C");
   _wire->begin();
 
+  /* Reset the MFRC630 if possible */
+  if (_pdown != -1)
+  {
+    DEBUG_PRINTLN("Resetting MFRC630");
+    pinMode(_pdown, OUTPUT);
+    digitalWrite(_pdown, HIGH);
+    digitalWrite(_pdown, LOW);
+    digitalWrite(_pdown, HIGH);
+    digitalWrite(_pdown, LOW);
+    /* Typical 2.5ms startup delay */
+    delay(5);
+  }
+
   /* Check device ID for bus response */
   DEBUG_PRINT("Checking I2C address 0x");
   DEBUG_PRINTLN(_i2c_addr, HEX);
@@ -164,7 +177,14 @@ bool Adafruit_MFRC630::begin()
   /* Read the VERSION register */
   byte ver = read8(MFRC630_REG_VERSION);
 
-  /* If !1.8, there was a problem */
+  /* If ver == 0xFF likely an I2C bus failure */
+  if (ver == 0xFF)
+  {
+    DEBUG_PRINTLN("I2C bus failure!");
+    return false;
+  }
+
+  /* If !1.8, there was a problem (or never chips?!?) */
   if (ver != 0x18)
   {
     DEBUG_PRINTLN("FAILED!");
