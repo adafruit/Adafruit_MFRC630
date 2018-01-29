@@ -291,6 +291,38 @@ int16_t Adafruit_MFRC630::readFIFO(uint16_t len, uint8_t *buffer)
 
 /**************************************************************************/
 /*!
+    @brief  Writes the specified number of bytes to the HW FIFO
+
+    @returns The number of bytes written to the FIFO, -1 if an error occured.
+*/
+/**************************************************************************/
+int16_t Adafruit_MFRC630::writeFIFO(uint16_t len, uint8_t *buffer)
+{
+  int counter = 0;
+
+  /* Check for 512 byte overflow */
+  if (len > 512)
+  {
+    return -1;
+  }
+
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("WRITING ");
+  DEBUG_PRINT(len);
+  DEBUG_PRINTLN(" bytes to FIFO");
+
+  /* Write len bytes to the FIFO */
+  for (uint16_t i = 0; i < len; i++)
+  {
+    write8(MFRC630_REG_FIFO_DATA, buffer[i]);
+    counter++;
+  }
+
+  return counter;
+}
+
+/**************************************************************************/
+/*!
     @brief  Writes a parameter-less command to the internal state machine
 */
 /**************************************************************************/
@@ -312,5 +344,15 @@ void Adafruit_MFRC630::writeCommand(byte command)
 /**************************************************************************/
 void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen, uint8_t *params)
 {
+  /* Arguments and/or data necessary to process a command, are exchanged via
+     the FIF0 buffer:
 
+     - Each command that needs a certain number of arguments will start
+       processing only when it has received the correct number of arguments
+       via the FIFO buffer.
+     - The FIFO buffer is not cleared automatically at command start. It is
+       recommended to write the command arguments and/or the data bytes into
+       the FIFO buffer and start the command afterwards.
+     - Each command may be stopped by the host by writing a new command code
+       into the command register e.g.: the Idle-Command. */
 }

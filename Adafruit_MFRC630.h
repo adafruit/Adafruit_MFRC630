@@ -61,9 +61,12 @@ class Adafruit_MFRC630
     Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
     bool begin(void);
 
+    /* FIFO helpers (see section 7.5) */
     int16_t readFIFOLen(void);
     int16_t readFIFO(uint16_t len, uint8_t *buffer);
+    int16_t writeFIFO(uint16_t len, uint8_t *buffer);
 
+    /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);
     void writeCommand(byte command, uint8_t paramlen, uint8_t *params);
 
