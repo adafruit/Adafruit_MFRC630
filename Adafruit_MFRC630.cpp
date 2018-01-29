@@ -323,6 +323,20 @@ int16_t Adafruit_MFRC630::writeFIFO(uint16_t len, uint8_t *buffer)
 
 /**************************************************************************/
 /*!
+    @brief  Flushes the contents of the FIFo buffer
+*/
+/**************************************************************************/
+void Adafruit_MFRC630::clearFIFO(void)
+{
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Clearing FIFO buffer ");
+
+  uint8_t ctrl = read8(MFRC630_REG_FIFO_CONTROL);
+  write8(MFRC630_REG_FIFO_CONTROL, ctrl | (1<<4));
+}
+
+/**************************************************************************/
+/*!
     @brief  Writes a parameter-less command to the internal state machine
 */
 /**************************************************************************/

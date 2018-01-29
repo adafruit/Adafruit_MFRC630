@@ -63,6 +63,25 @@ void fifo_write_test(void)
   Serial.println(" ");
 }
 
+void fifo_clear_test(void)
+{
+  uint8_t buff[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+
+  /* Write data into the FIFO buffer */
+  Serial.println("Writing 16 bytes into FIFO buffer");
+  int16_t writelen = rfid.writeFIFO(sizeof(buff), buff);
+  int16_t len = rfid.readFIFOLen();
+  Serial.print("FIFO len = "),
+  Serial.println(len);
+
+  /* Clear the FIFO */
+  Serial.println("Clearing FIFO");
+  rfid.clearFIFO();
+  len = rfid.readFIFOLen();
+  Serial.print("FIFO len = "),
+  Serial.println(len);
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("");
@@ -82,11 +101,10 @@ void setup() {
     }
   }
 
-  /* Do a random number FIFO test */
-  //fifo_read_test();
-
-  /* Do a FIFO write test */
-  fifo_write_test();
+  /* FIFO tests */
+  // fifo_read_test();
+  // fifo_write_test();
+  fifo_clear_test();
 }
 
 void loop() {

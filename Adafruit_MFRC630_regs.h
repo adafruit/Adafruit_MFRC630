@@ -58,24 +58,27 @@ enum mfrc630reg
   MFRC630_REG_T4_RELOAD_LO            = 0x25,
   MFRC630_REG_T4_COUNTER_VAL_HI       = 0x26,
   MFRC630_REG_T4_COUNTER_VAL_LO       = 0x27,
-  MFRC630_REG_DRV_MOD                 = 0x28,
-  MFRC630_REG_TX_AMP                  = 0x29,
-  MFRC630_REG_DRV_CON                 = 0x2A,
-  MFRC630_REG_TXL                     = 0x2B,
-  MFRC630_REG_TX_CRC_PRESET           = 0x2C,
-  MFRC630_REG_RX_CRC_PRESET           = 0x2D,
-  MFRC630_REG_TX_DATA_NUM             = 0x2E,
-  MFRC630_REG_TX_MOD_WIDTH            = 0x2F,
-  MFRC630_REG_TX_SYM_10_BURST_LEN     = 0x30,
-  MFRC630_REG_TX_WAIT_CTRL            = 0x31,
-  MFRC630_REG_TX_WAIT_LO              = 0x32,
-  MFRC630_REG_FRAME_CON               = 0x33,
-  MFRC630_REG_RX_SOFD                 = 0x34,
-  MFRC630_REG_RX_CTRL                 = 0x35,
-  MFRC630_REG_RX_WAIT                 = 0x36,
-  MFRC630_REG_RX_THRESHOLD            = 0x37,
-  MFRC630_REG_RCV                     = 0x38,
-  MFRC630_REG_RX_ANA                  = 0x39,
+
+  /* 0x28..0x39 = Antenna Configuration */
+  MFRC630_REG_DRV_MOD                 = 0x28, /**<  (ISO/IEC14443-A 106 = 0x8E) */
+  MFRC630_REG_TX_AMP                  = 0x29, /**<  (ISO/IEC14443-A 106 = 0x12) */
+  MFRC630_REG_DRV_CON                 = 0x2A, /**<  (ISO/IEC14443-A 106 = 0x39) */
+  MFRC630_REG_TXL                     = 0x2B, /**<  (ISO/IEC14443-A 106 = 0x0A) */
+  MFRC630_REG_TX_CRC_PRESET           = 0x2C, /**<  (ISO/IEC14443-A 106 = 0x18) */
+  MFRC630_REG_RX_CRC_PRESET           = 0x2D, /**<  (ISO/IEC14443-A 106 = 0x18) */
+  MFRC630_REG_TX_DATA_NUM             = 0x2E, /**<  (ISO/IEC14443-A 106 = 0x0F) */
+  MFRC630_REG_TX_MOD_WIDTH            = 0x2F, /**<  (ISO/IEC14443-A 106 = 0x21) */
+  MFRC630_REG_TX_SYM_10_BURST_LEN     = 0x30, /**<  (ISO/IEC14443-A 106 = 0x00) */
+  MFRC630_REG_TX_WAIT_CTRL            = 0x31, /**<  (ISO/IEC14443-A 106 = 0xC0) */
+  MFRC630_REG_TX_WAIT_LO              = 0x32, /**<  (ISO/IEC14443-A 106 = 0x12) */
+  MFRC630_REG_FRAME_CON               = 0x33, /**<  (ISO/IEC14443-A 106 = 0xCF) */
+  MFRC630_REG_RX_SOFD                 = 0x34, /**<  (ISO/IEC14443-A 106 = 0x00) */
+  MFRC630_REG_RX_CTRL                 = 0x35, /**<  (ISO/IEC14443-A 106 = 0x04) */
+  MFRC630_REG_RX_WAIT                 = 0x36, /**<  (ISO/IEC14443-A 106 = 0x90) */
+  MFRC630_REG_RX_THRESHOLD            = 0x37, /**<  (ISO/IEC14443-A 106 = 0x5C) */
+  MFRC630_REG_RCV                     = 0x38, /**<  (ISO/IEC14443-A 106 = 0x12) */
+  MFRC630_REG_RX_ANA                  = 0x39, /**<  (ISO/IEC14443-A 106 = 0x0A) */
+
   MFRC630_REG_RFU_LPCD                = 0x3A,
   MFRC630_REG_SERIAL_SPEED            = 0x3B,
   MFRC630_REG_LFO_TRIMM               = 0x3C,

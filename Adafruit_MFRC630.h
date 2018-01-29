@@ -19,6 +19,7 @@
 #include "Arduino.h"
 #include <Wire.h>
 #include "Adafruit_MFRC630_regs.h"
+#include "Adafruit_MFRC630_consts.h"
 
 #define MFRC630_I2C_ADDR              (0x28)
 
@@ -65,6 +66,7 @@ class Adafruit_MFRC630
     int16_t readFIFOLen(void);
     int16_t readFIFO(uint16_t len, uint8_t *buffer);
     int16_t writeFIFO(uint16_t len, uint8_t *buffer);
+    void    clearFIFO(void);
 
     /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);
