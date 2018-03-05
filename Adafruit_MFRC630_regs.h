@@ -128,4 +128,11 @@ enum mfrc630comstat
   MFRC630_COMSTAT_RECEIVING           = 0b111  /**< Receiving */
 };
 
+/* Radio config modes */
+enum mfrc630radiocfg
+{
+  MFRC630_RADIOCFG_ISO1443A_106       = 1,     /**< ISO1443A 106 Mode */
+  MFRC630_LAST
+};
+
 #endif

@@ -71,6 +71,9 @@ class Adafruit_MFRC630
     /* General helpers */
     uint8_t getComStatus(void);
 
+    /* Radio functions */
+    bool configRadio(mfrc630radiocfg cfg);
+
     /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);
     void writeCommand(byte command, uint8_t paramlen, uint8_t *params);

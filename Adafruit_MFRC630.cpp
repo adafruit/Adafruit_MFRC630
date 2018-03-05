@@ -56,13 +56,18 @@ void Adafruit_MFRC630::writeBuffer(byte reg, byte len, uint8_t *buffer)
   TRACE_PRINT(" byte(s) to 0x");
   TRACE_PRINTLN(reg, HEX);
 
+  TRACE_TIMESTAMP();
   _wire->beginTransmission(_i2c_addr);
   _wire->write(reg);
   for (i = 0; i < len; i++)
   {
-    _wire->write(buffer[0]);
+    _wire->write(buffer[i]);
+    TRACE_PRINT("0x");
+    TRACE_PRINT(buffer[i], HEX);
+    TRACE_PRINT(" ");
   }
   _wire->endTransmission();
+  TRACE_PRINTLN("");
 }
 
 /**************************************************************************/
@@ -379,4 +384,27 @@ void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen, uint8_t *par
 uint8_t Adafruit_MFRC630::getComStatus(void)
 {
   return (read8(MFRC630_REG_STATUS) & 0b111);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Configures the radio for the specific protocol
+*/
+/**************************************************************************/
+bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
+{
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("Configuring the radio as ");
+
+  switch(cfg)
+  {
+    case MFRC630_RADIOCFG_ISO1443A_106:
+      DEBUG_PRINTLN("ISO1443A-106");
+      writeBuffer(MFRC630_REG_DRV_MOD,
+          sizeof(antcfg_iso14443a_106), antcfg_iso14443a_106);
+      break;
+    default:
+      DEBUG_PRINTLN("[UNKNOWN!]");
+      break;
+  }
 }

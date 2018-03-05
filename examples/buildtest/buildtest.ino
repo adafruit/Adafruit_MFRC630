@@ -63,6 +63,7 @@ void fifo_write_test(void)
   Serial.println(" ");
 }
 
+/* This function clears the FIFO contents */
 void fifo_clear_test(void)
 {
   uint8_t buff[16] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
@@ -82,6 +83,7 @@ void fifo_clear_test(void)
   Serial.println(len);
 }
 
+/* This function displays the status of the MFRC's state machine */
 void status_test(void)
 {
   Serial.println("Reading COM Status");
@@ -113,6 +115,13 @@ void status_test(void)
   }
 }
 
+/* Configure the radio for ISO14443A-106 type tags */
+void radio_cfg_iso1443A_106()
+{
+  Serial.println("Configuring radio for ISO14443A-106 tags");
+  rfid.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+}
+
 void setup() {
   Serial.begin(115200);
   Serial.println("");
@@ -121,7 +130,7 @@ void setup() {
   Serial.println("-----------------------------");
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(LED_BLUE, OUTPUT);
+  pinMode(PIN_LED2, OUTPUT);
 
   /* Try to initialize the IC */
   if (!(rfid.begin())) {
@@ -139,12 +148,15 @@ void setup() {
 
   /* General HW tests */
   status_test();
+
+  /* Radio tests */
+  radio_cfg_iso1443A_106();
 }
 
 void loop() {
   for (int i = 0; i < 2; i++)
   {
-    digitalToggle(LED_BLUE);
+    digitalToggle(PIN_LED2);
     delay(1000);
   }
 }
