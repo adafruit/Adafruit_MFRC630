@@ -394,7 +394,7 @@ uint8_t Adafruit_MFRC630::getComStatus(void)
 bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
 {
   DEBUG_TIMESTAMP();
-  DEBUG_PRINT("Configuring the radio as ");
+  DEBUG_PRINT("Configuring the radio for ");
 
   switch(cfg)
   {
@@ -405,6 +405,40 @@ bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
       break;
     default:
       DEBUG_PRINTLN("[UNKNOWN!]");
+      return false;
       break;
   }
+
+  return true;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Waits up to 'timeout' seconds for a tag (0 to wait forever).
+*/
+/**************************************************************************/
+bool Adafruit_MFRC630::waitForTag(float timeout)
+{
+  uint16_t atqa = 0;
+
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Configuring device to wait for a tag");
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("Timeout = ");
+  DEBUG_PRINTLN(timeout);
+
+  /* Cancel any current command */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("1. Sending IDLE (Cancel current command)");
+  writeCommand(MFRC630_CMD_IDLE);
+
+  /* Flushg the FIFO */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("2. Flushing the FIFO buffer");
+  clearFIFO();
+
+  /* ToDo: Configure radio to scan for tags */
+  /* ToDo: MAke sure to configure a timeout if value > 0! */
+
+  return true;
 }

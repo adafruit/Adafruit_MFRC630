@@ -73,6 +73,7 @@ class Adafruit_MFRC630
 
     /* Radio functions */
     bool configRadio(mfrc630radiocfg cfg);
+    bool waitForTag(float timeout = 0.0F);
 
     /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);
