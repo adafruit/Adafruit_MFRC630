@@ -448,20 +448,23 @@ bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
   return true;
 }
 
-/**************************************************************************/
-/*!
-    @brief  Waits up to 'timeout' seconds for a tag (0 to wait forever).
-*/
-/**************************************************************************/
-uint16_t Adafruit_MFRC630::waitForTag(float timeout)
+uint16_t Adafruit_MFRC630::iso14443aRequest(void)
+{
+  return iso14443aCommand(ISO14443_CMD_REQA);
+}
+
+uint16_t Adafruit_MFRC630::iso14443aWakeup(void)
+{
+  return iso14443aCommand(ISO14443_CMD_WUPA);
+}
+
+uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
 {
   uint16_t atqa = 0;  /* Answer to request (2 bytes). */
 
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("Configuring device to wait for a tag");
+  DEBUG_PRINTLN("Configuring device to check for a tag");
   DEBUG_TIMESTAMP();
-  DEBUG_PRINT("Timeout = ");
-  DEBUG_PRINTLN(timeout);
 
   /* Cancel any current command */
   DEBUG_TIMESTAMP();
@@ -490,7 +493,7 @@ uint16_t Adafruit_MFRC630::waitForTag(float timeout)
   write8(MFRC630_REG_TX_CRC_PRESET, 0x18);
   write8(MFRC630_REG_RX_CRC_CON, 0x18);
 
-  /* Clear the receiver control regiter. */
+  /* Clear the receiver control register. */
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("3.b. Clearing the receiver control register.");
   write8(MFRC630_REG_RX_BIT_CTRL, 0);
@@ -505,19 +508,20 @@ uint16_t Adafruit_MFRC630::waitForTag(float timeout)
   /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
   write8(MFRC630_REG_IRQ1EN, (1 << 0));
 
-  /* Configure the timeout on Timer1. */
+  /* Configure the frame wait timeout using T0 (5ms max). */
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("3.d. Configuring timeout (211.875kHz, post TX, 5ms timeout).");
   write8(MFRC630_REG_T0_CONTROL, 0b10001);
-  write8(MFRC630_REG_T0_RELOAD_HI, 1000 >> 8);
+  /* 1 'tick' 4.72us, so 1100 = 5.2ms */
+  write8(MFRC630_REG_T0_RELOAD_HI, 1100 >> 8);
   write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
-  write8(MFRC630_REG_T0_COUNTER_VAL_HI, 1000 >> 8);
+  write8(MFRC630_REG_T0_COUNTER_VAL_HI, 1100 >> 8);
   write8(MFRC630_REG_T0_COUNTER_VAL_LO, 0xFF);
 
-  /* Send the ISO14443 REQA command. */
+  /* Send the ISO14443 command. */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.e. Sending ISO14443 'REQA' command.");
-  uint8_t send_req[] = { ISO14443_CMD_REQA };
+  DEBUG_PRINTLN("3.e. Sending ISO14443 command.");
+  uint8_t send_req[] = { (uint8_t)cmd };
   writeCommand(MFRC630_CMD_TRANSCEIVE, 1, send_req);
 
   /* Wait here until we're done reading, get an error, or timeout. */
@@ -575,7 +579,7 @@ bool Adafruit_MFRC630::mifare_dump(float timeout)
   uint16_t atqa;
 
   /* See if you can detect a card. */
-  atqa = waitForTag(timeout);
+  atqa = iso14443aRequest();
 
   /* If ATQA is non-zero, a card was likely found. */
   if (atqa) {

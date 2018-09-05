@@ -121,10 +121,8 @@ void radio_cfg_iso1443A_106()
   Serial.println("Configuring radio for ISO14443A-106 tags");
   rfid.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
 
-  /* TODO: This function is not yet implemented!!! */
-  /* See Adafruit_MFRC630.cpp for details */
-  Serial.println("Waiting 60 seconds for a tag");
-  rfid.waitForTag(60.0F);
+  /* Request a tag */
+  uint16_t atqa = rfid.iso14443aRequest();
 }
 
 void setup() {

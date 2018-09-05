@@ -76,7 +76,10 @@ class Adafruit_MFRC630
 
     /* Radio functions */
     bool configRadio(mfrc630radiocfg cfg);
-    uint16_t waitForTag(float timeout = 0.0F);
+
+    /* Generic ISO14443a commands. */
+    uint16_t iso14443aRequest(void);
+    uint16_t iso14443aWakeup(void);
 
     /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);
@@ -94,6 +97,8 @@ class Adafruit_MFRC630
     void writeBuffer(byte reg, byte len, uint8_t *buffer);
     byte read8(byte reg);
     byte readBuffer(byte reg, byte len, uint8_t *buffer);
+    
+    uint16_t iso14443aCommand(enum iso14443_cmd cmd);
 };
 
 #endif
