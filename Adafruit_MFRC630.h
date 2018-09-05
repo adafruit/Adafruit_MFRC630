@@ -68,12 +68,15 @@ class Adafruit_MFRC630
     int16_t writeFIFO(uint16_t len, uint8_t *buffer);
     void    clearFIFO(void);
 
+    /* Command wrappers */
+    void transceiveCmd(const uint8_t* data, uint16_t len);
+
     /* General helpers */
     uint8_t getComStatus(void);
 
     /* Radio functions */
     bool configRadio(mfrc630radiocfg cfg);
-    bool waitForTag(float timeout = 0.0F);
+    uint16_t waitForTag(float timeout = 0.0F);
 
     /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);

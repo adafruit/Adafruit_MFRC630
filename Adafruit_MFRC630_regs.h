@@ -65,7 +65,7 @@ enum mfrc630reg
   MFRC630_REG_DRV_CON                 = 0x2A, /**<  (ISO/IEC14443-A 106 = 0x39) */
   MFRC630_REG_TXL                     = 0x2B, /**<  (ISO/IEC14443-A 106 = 0x0A) */
   MFRC630_REG_TX_CRC_PRESET           = 0x2C, /**<  (ISO/IEC14443-A 106 = 0x18) */
-  MFRC630_REG_RX_CRC_PRESET           = 0x2D, /**<  (ISO/IEC14443-A 106 = 0x18) */
+  MFRC630_REG_RX_CRC_CON              = 0x2D, /**<  (ISO/IEC14443-A 106 = 0x18) */
   MFRC630_REG_TX_DATA_NUM             = 0x2E, /**<  (ISO/IEC14443-A 106 = 0x0F) */
   MFRC630_REG_TX_MOD_WIDTH            = 0x2F, /**<  (ISO/IEC14443-A 106 = 0x21) */
   MFRC630_REG_TX_SYM_10_BURST_LEN     = 0x30, /**<  (ISO/IEC14443-A 106 = 0x00) */
@@ -115,6 +115,32 @@ enum mfrc630cmd
   MFRC630_CMD_STOREKEYE2              = 0x0F, /**< Stores a MIFARE key (6 bytes) into EEPROM */
   MFRC630_CMD_READRNR                 = 0x1C, /**< Copies bytes from the random number generator into the FIFO buffer until the FIFO is full */
   MFRC630_CMD_SOFTRESET               = 0x1F  /**< SW resets the MFRC630 */
+};
+
+/* ISO14443 Commands (see ISO-14443-3) */
+enum mfrc630_iso14443_cmd
+{
+  ISO14443_CMD_REQA               = 0x26, /**< Request command. */
+  ISO14443_CMD_WUPA               = 0x52, /**< Wakeup command. */
+  ISO14443_CAS_LEVEL_1            = 0x93, /**< Anticollision cascade level 1. */
+  ISO14443_CAS_LEVEL_2            = 0x95, /**< Anticollision cascade level 2. */
+  ISO14443_CAS_LEVEL_3            = 0x97  /**< Anticollision cascade level 3. */
+};
+
+
+
+/* Mifare Commands */
+enum mfrc630_mifare_cmd
+{
+  MIFARE_CMD_AUTH_A                   = 0x60,
+  MIFARE_CMD_AUTH_B                   = 0x61,
+  MIFARE_CMD_READ                     = 0x30,
+  MIFARE_CMD_WRITE                    = 0xA0,
+  MIFARE_CMD_TRANSFER                 = 0xB0,
+  MIFARE_CMD_DECREMENT                = 0xC0,
+  MIFARE_CMD_INCREMENT                = 0xC1,
+  MIFARE_CMD_STORE                    = 0xC2,
+  MIFARE_ULTRALIGHT_CMD_WRITE         = 0xA2
 };
 
 /* 'ComState' values for for the MFRC630_REG_STATUS register (0x0B) */

@@ -182,6 +182,10 @@ Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin, uint8_t i
 /**************************************************************************/
 bool Adafruit_MFRC630::begin()
 {
+  /* Display alert for DEBUG and TRACE output. */
+  DEBUG_PRINTLN("\tDebug output enabled: D [+ms] Message");
+  TRACE_PRINTLN("\tTrace output enabled: . [+ms] Message");
+
   /* Enable I2C */
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("Initialising I2C");
@@ -361,7 +365,8 @@ void Adafruit_MFRC630::writeCommand(byte command)
     @brief  Writes a parametered command to the internal state machine
 */
 /**************************************************************************/
-void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen, uint8_t *params)
+void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen,
+  uint8_t *params)
 {
   /* Arguments and/or data necessary to process a command, are exchanged via
      the FIF0 buffer:
@@ -374,6 +379,21 @@ void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen, uint8_t *par
        the FIFO buffer and start the command afterwards.
      - Each command may be stopped by the host by writing a new command code
        into the command register e.g.: the Idle-Command. */
+
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Transceiving Command");
+
+  /* Cancel any current command. */
+  write8(MFRC630_REG_COMMAND, MFRC630_CMD_IDLE);
+
+  /* Flush the FIFO */
+  clearFIFO();
+
+  /* Write data to the FIFO */
+  writeFIFO(paramlen, params);
+
+  /* Send the transceive command */
+  write8(MFRC630_REG_COMMAND, command);
 }
 
 /**************************************************************************/
@@ -402,6 +422,22 @@ bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
       DEBUG_PRINTLN("ISO1443A-106");
       writeBuffer(MFRC630_REG_DRV_MOD,
           sizeof(antcfg_iso14443a_106), antcfg_iso14443a_106);
+
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINTLN("Setting driver mode");
+      write8(MFRC630_REG_DRV_MOD, 0x8E);  /* Driver mode register */
+
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINTLN("Setting transmitter amplifier (residual carrier %)");
+      write8(MFRC630_REG_TX_AMP, 0x12);   /* Transmiter amplifier register */
+
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINTLN("Setting driver configuration");
+      write8(MFRC630_REG_DRV_CON, 0x39);  /* Driver configuration register */
+
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINTLN("Configuring transmitter (overshoot/TX load)");
+      write8(MFRC630_REG_TXL, 0x06);      /* Transmitter register */
       break;
     default:
       DEBUG_PRINTLN("[UNKNOWN!]");
@@ -417,7 +453,7 @@ bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
     @brief  Waits up to 'timeout' seconds for a tag (0 to wait forever).
 */
 /**************************************************************************/
-bool Adafruit_MFRC630::waitForTag(float timeout)
+uint16_t Adafruit_MFRC630::waitForTag(float timeout)
 {
   uint16_t atqa = 0;
 
@@ -437,8 +473,90 @@ bool Adafruit_MFRC630::waitForTag(float timeout)
   DEBUG_PRINTLN("2. Flushing the FIFO buffer");
   clearFIFO();
 
-  /* ToDo: Configure radio to scan for tags */
-  /* ToDo: MAke sure to configure a timeout if value > 0! */
+  /* Configure radio to scan for tags */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3. Configuring the radio to listen for ISO14443 tags.");
 
-  return true;
+  /*
+   * Define the number of bits from the last byte should be sent. 000 means
+   * that all bits of the last data byte are sent, 1..7 causes the specified
+   * number of bits to be sent. Also set the DataEn bit to enable data xfer.
+   */
+  write8(MFRC630_REG_TX_DATA_NUM, 0x07 | (1<<3));
+
+  /* Disable CRC. */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.a. Disabling CRC checks.");
+  write8(MFRC630_REG_TX_CRC_PRESET, 0x18);
+  write8(MFRC630_REG_RX_CRC_CON, 0x18);
+
+  /* Clear the receiver control regiter. */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.b. Clearing the receiver control register.");
+  write8(MFRC630_REG_RX_BIT_CTRL, 0);
+
+  /* Clear the interrupts. */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.c. Clearing and configuring interrupts.");
+  write8(MFRC630_REG_IRQ0, 0b01111111);
+  write8(MFRC630_REG_IRQ1, 0b00111111);
+  /* Allow the receiver and Error IRQs to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQOEN, (1 << 2) | (1 << 1));
+  /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+
+  /* Configure the timeout on Timer1. */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.d. Configuring timeout (211.875kHz, post TX, 5ms timeout).");
+  write8(MFRC630_REG_T0_CONTROL, 0b10001);
+  write8(MFRC630_REG_T0_RELOAD_HI, 1000 >> 8);
+  write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
+  write8(MFRC630_REG_T0_COUNTER_VAL_HI, 1000 >> 8);
+  write8(MFRC630_REG_T0_COUNTER_VAL_LO, 0xFF);
+
+  /* Send the ISO14443 REQA command. */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.e. Sending ISO14443 'REQA' command.");
+  uint8_t send_req[] = { ISO14443_CMD_REQA };
+  writeCommand(MFRC630_CMD_TRANSCEIVE, 1, send_req);
+
+  /* Wait here until we're done reading, get an error, or timeout. */
+  /* TODO: Update to use timeout parameter! */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.f. Waiting for a response or timeout.");
+  uint8_t irqval = 0;
+  while (!(irqval & 1)) {
+    irqval = read8(MFRC630_REG_IRQ1);
+    /* Check for a global interrrupt, which can only be ERR or RX. */
+    if (irqval & (1 << 6)) {
+      break;
+    }
+  }
+
+  /* Cancel the current command (in case we timed out or error occurred). */
+  write8(MFRC630_REG_COMMAND, MFRC630_CMD_IDLE);
+
+  /* Check the RX IRQ, and exit appropriately if it has fired (error). */
+  irqval = read8(MFRC630_REG_IRQ0);
+  if ( (!(irqval & (1<<2))) || (irqval & (1<<1)) ) {
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("ERROR: No RX flag set, transceive failed or timed out.");
+    return 0;
+  }
+
+  /* Read the response */
+  uint16_t rxlen = readFIFOLen();
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.g. Reading response from FIFO buffer.");
+  /* If we have 2 bytes, response is likely ATQA. */
+  if (rxlen == 2) {  // ATQA should answer with 2 bytes.
+    readFIFO(rxlen, (uint8_t*) &atqa);
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("Received ATQA answer:");
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN(atqa);
+    return atqa;
+  }
+
+  return 0;
 }
