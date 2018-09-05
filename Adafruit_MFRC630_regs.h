@@ -118,7 +118,7 @@ enum mfrc630cmd
 };
 
 /* ISO14443 Commands (see ISO-14443-3) */
-enum mfrc630_iso14443_cmd
+enum iso14443_cmd
 {
   ISO14443_CMD_REQA               = 0x26, /**< Request command. */
   ISO14443_CMD_WUPA               = 0x52, /**< Wakeup command. */
@@ -127,10 +127,8 @@ enum mfrc630_iso14443_cmd
   ISO14443_CAS_LEVEL_3            = 0x97  /**< Anticollision cascade level 3. */
 };
 
-
-
 /* Mifare Commands */
-enum mfrc630_mifare_cmd
+enum mifare_cmd
 {
   MIFARE_CMD_AUTH_A                   = 0x60,
   MIFARE_CMD_AUTH_B                   = 0x61,

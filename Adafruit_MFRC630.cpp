@@ -455,7 +455,7 @@ bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
 /**************************************************************************/
 uint16_t Adafruit_MFRC630::waitForTag(float timeout)
 {
-  uint16_t atqa = 0;
+  uint16_t atqa = 0;  /* Answer to request (2 bytes). */
 
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("Configuring device to wait for a tag");
@@ -548,15 +548,42 @@ uint16_t Adafruit_MFRC630::waitForTag(float timeout)
   uint16_t rxlen = readFIFOLen();
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("3.g. Reading response from FIFO buffer.");
-  /* If we have 2 bytes, response is likely ATQA. */
-  if (rxlen == 2) {  // ATQA should answer with 2 bytes.
+  if (rxlen == 2) {
+    /*
+     * If we have 2 bytes for the response, it's the ATQA.
+     *
+     * See ISO14443-3 6.3.2 for help in interpretting the ATQA value.
+     *
+     * "After a REQA Command is transmitted by the PCD, all
+     * PICCs in the IDLE State shall respond synchronously with ATQA."
+     *
+     * 0x44 = 4 bit frame anticollision
+     *        UID size = double
+     */
     readFIFO(rxlen, (uint8_t*) &atqa);
     DEBUG_TIMESTAMP();
-    DEBUG_PRINTLN("Received ATQA answer:");
-    DEBUG_TIMESTAMP();
-    DEBUG_PRINTLN(atqa);
+    DEBUG_PRINT("Received response (ATQA): 0x");
+    DEBUG_PRINTLN(atqa, HEX);
     return atqa;
   }
 
   return 0;
+}
+
+bool Adafruit_MFRC630::mifare_dump(float timeout)
+{
+  uint16_t atqa;
+
+  /* See if you can detect a card. */
+  atqa = waitForTag(timeout);
+
+  /* If ATQA is non-zero, a card was likely found. */
+  if (atqa) {
+    uint8_t sak;
+    uint8_t uid[10] = { 0 };
+
+    /* TODO! */
+  }
+
+  return false;
 }

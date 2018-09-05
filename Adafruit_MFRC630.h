@@ -82,6 +82,9 @@ class Adafruit_MFRC630
     void writeCommand(byte command);
     void writeCommand(byte command, uint8_t paramlen, uint8_t *params);
 
+    /* High level helper functions */
+    bool mifare_dump(float timeout);
+
   private:
     int8_t _pdown;
     uint8_t _i2c_addr;
