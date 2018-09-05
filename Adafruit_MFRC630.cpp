@@ -184,7 +184,7 @@ bool Adafruit_MFRC630::begin()
 {
   /* Display alert for DEBUG and TRACE output. */
   DEBUG_PRINTLN("\tDebug output enabled: D [+ms] Message");
-  TRACE_PRINTLN("\tTrace output enabled: . [+ms] Message");
+  TRACE_PRINTLN("\tTrace output enabled: . [+ms] Message\n");
 
   /* Enable I2C */
   DEBUG_TIMESTAMP();
