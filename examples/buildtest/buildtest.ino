@@ -1,7 +1,11 @@
 #include <Wire.h>
 #include <Adafruit_MFRC630.h>
 
-#define PDOWN_PIN     (27)
+/* Indicate the pin number where PDOWN is connected. */
+#define PDOWN_PIN         (27)
+
+/* Show me a mojic trick, dad! */
+#define MOJIC_TRICK       (1)
 
 /* Use the default I2C address */
 Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
@@ -121,6 +125,9 @@ void radio_iso1443A_106_scan()
 
   /* Request a tag */
   Serial.println("Checking for ISO14443A-106 tags");
+  #if MOJIC_TRICK
+  Serial.println("┬─┬ ノ( ゜-゜ノ)");
+  #endif
   uint16_t atqa = rfid.iso14443aRequest();
 
   /* Select the tag if we found something */
@@ -132,13 +139,22 @@ void radio_iso1443A_106_scan()
 
     Serial.print("Found a ISO14443A-106 tag with ATQA 0x");
     Serial.println(atqa, HEX);
+    #if MOJIC_TRICK
+    Serial.println("ᕙ(`▽´)ᕗ");
+    #endif
 
     Serial.println("Selecting the tag");
+    #if MOJIC_TRICK
+    Serial.println("(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧");
+    #endif
     uidlen = rfid.iso14443aSelect(uid, &sak);
   }
   else
   {
     Serial.println("No ISO14443A-106 tag found!");
+    #if MOJIC_TRICK
+    Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
+    #endif
   }
 }
 
