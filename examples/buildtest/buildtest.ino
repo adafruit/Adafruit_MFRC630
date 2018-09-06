@@ -6,6 +6,22 @@
 /* Use the default I2C address */
 Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
 
+/* Prints out 16 bytes of hex data in table format. */
+static void print_buf_hex16(uint8_t *buf, size_t len)
+{
+  for (uint8_t i = 0; i < len; i++)
+  {
+    Serial.print("0x");
+    if (buf[i] < 16)
+    {
+      Serial.print("0");
+    }
+    Serial.print(buf[i], HEX);
+    Serial.print(" ");
+  }
+  Serial.println(" ");
+}
+
 /* This functions sends a command to fill the FIFO with random numbers and then */
 /* reads the entire FIFO contents in 16 byte chunks */
 void fifo_read_test(void)
@@ -14,6 +30,8 @@ void fifo_read_test(void)
 
   /* Generate random numbers into the FIFO */
   rfid.writeCommand(MFRC630_CMD_READRNR);
+  /* Note, this command requires a 10ms delay to fill the buffer! */
+  delay(10);
 
   /* Dump the FIFO 16 bytes at a time to stay within 32 byte I2C transaction limit */
   uint8_t buff[16];
@@ -23,18 +41,8 @@ void fifo_read_test(void)
     memset(buff, 0, sizeof(buff));
     int16_t readlen = rfid.readFIFO(len > 16 ? 16 : len, buff);
     len -= readlen;
-    /* Print the data in 16 byte chunks */
-    for (uint8_t i = 0; i < readlen; i++)
-    {
-      Serial.print("0x");
-      if (buff[i] < 16)
-      {
-        Serial.print("0");
-      }
-      Serial.print(buff[i], HEX);
-      Serial.print(" ");
-    }
-    Serial.println(" ");
+    /* Display the buffer in 16 byte chunks. */
+    print_buf_hex16(buff, readlen);
   }
 }
 
@@ -50,17 +58,7 @@ void fifo_write_test(void)
   /* Read data back and display it*/
   memset(buff, 0, sizeof(buff));
   int16_t readlen = rfid.readFIFO(sizeof(buff), buff);
-  for (uint8_t i = 0; i < readlen; i++)
-  {
-    Serial.print("0x");
-    if (buff[i] < 16)
-    {
-      Serial.print("0");
-    }
-    Serial.print(buff[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println(" ");
+  print_buf_hex16(buff, readlen);
 }
 
 /* This function clears the FIFO contents */
@@ -115,13 +113,14 @@ void status_test(void)
   }
 }
 
-/* Configure the radio for ISO14443A-106 type tags */
-void radio_cfg_iso1443A_106()
+/* Configure the radio for ISO14443A-106 type tags and scan for the UID. */
+void radio_iso1443A_106_scan()
 {
   Serial.println("Configuring radio for ISO14443A-106 tags");
   rfid.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
 
   /* Request a tag */
+  Serial.println("Checking for ISO14443A-106 tags");
   uint16_t atqa = rfid.iso14443aRequest();
 
   /* Select the tag if we found something */
@@ -131,7 +130,15 @@ void radio_cfg_iso1443A_106()
     uint8_t uidlen;
     uint8_t sak;
 
+    Serial.print("Found a ISO14443A-106 tag with ATQA 0x");
+    Serial.println(atqa, HEX);
+
+    Serial.println("Selecting the tag");
     uidlen = rfid.iso14443aSelect(uid, &sak);
+  }
+  else
+  {
+    Serial.println("No ISO14443A-106 tag found!");
   }
 }
 
@@ -163,7 +170,7 @@ void setup() {
   // status_test();
 
   /* Radio tests */
-  radio_cfg_iso1443A_106();
+  radio_iso1443A_106_scan();
 }
 
 void loop() {

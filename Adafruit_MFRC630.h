@@ -27,10 +27,10 @@
 #define MFRC630_VERBOSITY_RELEASE     (0)   /* No debug output */
 #define MFRC630_VERBOSITY_DEBUG       (1)   /* Debug message output */
 #define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
-#define MFRC630_VERBOSITY = MFRC630_VERBOSITY_TRACE
+#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_DEBUG)
 
 /* Macro for debug output */
-#ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_DEBUG
+#if MFRC630_VERBOSITY >= MFRC630_VERBOSITY_DEBUG
   #define DEBUG_PRINT(...)   Serial.print(__VA_ARGS__)
   #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__)
   #define DEBUG_TIMESTAMP()  Serial.print("\tD [+"); \
@@ -43,7 +43,7 @@
 #endif
 
 /* Macro for trace output */
-#ifdef MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
+#if MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   #define TRACE_PRINT(...)   Serial.print(__VA_ARGS__)
   #define TRACE_PRINTLN(...) Serial.println(__VA_ARGS__)
   #define TRACE_TIMESTAMP()  Serial.print("\t. [+"); \

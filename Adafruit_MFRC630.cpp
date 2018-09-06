@@ -362,14 +362,14 @@ void Adafruit_MFRC630::writeCommand(byte command)
 
 /**************************************************************************/
 /*!
-    @brief  Writes a parametered command to the internal state machine
+    @brief  Writes a parameterised command to the internal state machine
 */
 /**************************************************************************/
 void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen,
   uint8_t *params)
 {
-  /* Arguments and/or data necessary to process a command, are exchanged via
-     the FIF0 buffer:
+  /* Arguments and/or data necessary to process a command are exchanged via
+     the FIFO buffer:
 
      - Each command that needs a certain number of arguments will start
        processing only when it has received the correct number of arguments
@@ -408,7 +408,7 @@ uint8_t Adafruit_MFRC630::getComStatus(void)
 
 /**************************************************************************/
 /*!
-    @brief  Configures the radio for the specific protocol
+    @brief  Configures the radio for the specified protocol
 */
 /**************************************************************************/
 bool Adafruit_MFRC630::configRadio(mfrc630radiocfg cfg)
@@ -463,22 +463,13 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   uint16_t atqa = 0;  /* Answer to request (2 bytes). */
 
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("Configuring device to check for a tag");
-  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Checking for an ISO14443A tag");
 
   /* Cancel any current command */
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("1. Sending IDLE (Cancel current command)");
   writeCommand(MFRC630_CMD_IDLE);
 
   /* Flush the FIFO */
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("2. Flushing the FIFO buffer");
   clearFIFO();
-
-  /* Configure radio to scan for tags */
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3. Configuring the radio to listen for ISO14443 tags.");
 
   /*
    * Define the number of bits from the last byte should be sent. 000 means
@@ -489,18 +480,18 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
 
   /* Disable CRC. */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.a. Disabling CRC checks.");
+  DEBUG_PRINTLN("A. Disabling CRC checks.");
   write8(MFRC630_REG_TX_CRC_PRESET, 0x18);
   write8(MFRC630_REG_RX_CRC_CON, 0x18);
 
   /* Clear the receiver control register. */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.b. Clearing the receiver control register.");
+  DEBUG_PRINTLN("B. Clearing the receiver control register.");
   write8(MFRC630_REG_RX_BIT_CTRL, 0);
 
   /* Clear the interrupts. */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.c. Clearing and configuring interrupts.");
+  DEBUG_PRINTLN("C. Clearing and configuring interrupts.");
   write8(MFRC630_REG_IRQ0, 0b01111111);
   write8(MFRC630_REG_IRQ1, 0b00111111);
   /* Allow the receiver and Error IRQs to be propagated to the GlobalIRQ. */
@@ -510,7 +501,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
 
   /* Configure the frame wait timeout using T0 (5ms max). */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.d. Configuring timeout (211.875kHz, post TX, 5ms timeout).");
+  DEBUG_PRINTLN("D. Configuring Timer0 @ 211.875kHz, post TX, 5ms timeout.");
   write8(MFRC630_REG_T0_CONTROL, 0b10001);
   /* 1 'tick' 4.72us, so 1100 = 5.2ms */
   write8(MFRC630_REG_T0_RELOAD_HI, 1100 >> 8);
@@ -520,14 +511,14 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
 
   /* Send the ISO14443 command. */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.e. Sending ISO14443 command.");
+  DEBUG_PRINTLN("E. Sending ISO14443 command.");
   uint8_t send_req[] = { (uint8_t)cmd };
   writeCommand(MFRC630_CMD_TRANSCEIVE, 1, send_req);
 
   /* Wait here until we're done reading, get an error, or timeout. */
   /* TODO: Update to use timeout parameter! */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.f. Waiting for a response or timeout.");
+  DEBUG_PRINTLN("F. Waiting for a response or timeout.");
   uint8_t irqval = 0;
   while (!(irqval & 1)) {
     irqval = read8(MFRC630_REG_IRQ1);
@@ -551,7 +542,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   /* Read the response */
   uint16_t rxlen = readFIFOLen();
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.g. Reading response from FIFO buffer.");
+  DEBUG_PRINTLN("G. Reading response from FIFO buffer.");
   if (rxlen == 2) {
     /*
      * If we have 2 bytes for the response, it's the ATQA.
@@ -577,32 +568,25 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
 uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
 {
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("Selecting a tag");
-  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Selecting an ISO14443A tag");
 
   /* Cancel any current command */
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("1. Sending IDLE (Cancel current command)");
   writeCommand(MFRC630_CMD_IDLE);
 
   /* Flush the FIFO */
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("2. Flushing the FIFO buffer");
   clearFIFO();
 
   /* Allow the receiver and Error IRQs to be propagated to the GlobalIRQ. */
   write8(MFRC630_REG_IRQOEN, (1 << 2) | (1 << 1));
+
   /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
   write8(MFRC630_REG_IRQ1EN, (1 << 0));
 
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3. Starting the select process.");
-
   /* Configure the frame wait timeout using T0 (5ms max). */
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.a Configuring timeout (211.875kHz, post TX, 5ms timeout).");
-  write8(MFRC630_REG_T0_CONTROL, 0b10001);
   /* 1 'tick' 4.72us, so 1100 = 5.2ms */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("A. Configuring Timer0 @ 211.875kHz, post TX, 5ms timeout.");
+  write8(MFRC630_REG_T0_CONTROL, 0b10001);
   write8(MFRC630_REG_T0_RELOAD_HI, 1100 >> 8);
   write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
   write8(MFRC630_REG_T0_COUNTER_VAL_HI, 1100 >> 8);
@@ -610,7 +594,7 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
 
   /* Set the cascade level */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("3.b Checking cascade level.");
+  DEBUG_PRINTLN("B. Checking cascade level.");
   uint8_t cascadelvl;
 
   return false;
