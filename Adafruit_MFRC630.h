@@ -60,6 +60,7 @@ class Adafruit_MFRC630
   public:
     Adafruit_MFRC630(int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
     Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
+
     bool begin(void);
 
     /* FIFO helpers (see section 7.5) */
@@ -68,25 +69,20 @@ class Adafruit_MFRC630
     int16_t writeFIFO(uint16_t len, uint8_t *buffer);
     void    clearFIFO(void);
 
-    /* Command wrappers */
-    void transceiveCmd(const uint8_t* data, uint16_t len);
-
-    /* General helpers */
-    uint8_t getComStatus(void);
-
-    /* Radio functions */
-    bool configRadio(mfrc630radiocfg cfg);
-
-    /* Generic ISO14443a commands. */
-    uint16_t iso14443aRequest(void);
-    uint16_t iso14443aWakeup(void);
-
     /* State machine command helpers (see section 7.10) */
     void writeCommand(byte command);
     void writeCommand(byte command, uint8_t paramlen, uint8_t *params);
 
-    /* High level helper functions */
-    bool mifare_dump(float timeout);
+    /* Radio config. */
+    bool configRadio(mfrc630radiocfg cfg);
+
+    /* Generic ISO14443a commands (common to any supported card variety). */
+    uint16_t iso14443aRequest(void);
+    uint16_t iso14443aWakeup(void);
+    uint8_t  iso14443aSelect(uint8_t *uid, uint8_t *sak);
+
+    /* General helpers */
+    uint8_t getComStatus(void);
 
   private:
     int8_t _pdown;
@@ -97,7 +93,7 @@ class Adafruit_MFRC630
     void writeBuffer(byte reg, byte len, uint8_t *buffer);
     byte read8(byte reg);
     byte readBuffer(byte reg, byte len, uint8_t *buffer);
-    
+
     uint16_t iso14443aCommand(enum iso14443_cmd cmd);
 };
 

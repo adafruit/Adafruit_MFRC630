@@ -123,6 +123,16 @@ void radio_cfg_iso1443A_106()
 
   /* Request a tag */
   uint16_t atqa = rfid.iso14443aRequest();
+
+  /* Select the tag if we found something */
+  if (atqa)
+  {
+    uint8_t uid[10] = { 0 };
+    uint8_t uidlen;
+    uint8_t sak;
+
+    uidlen = rfid.iso14443aSelect(uid, &sak);
+  }
 }
 
 void setup() {

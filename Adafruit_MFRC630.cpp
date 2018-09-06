@@ -471,7 +471,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   DEBUG_PRINTLN("1. Sending IDLE (Cancel current command)");
   writeCommand(MFRC630_CMD_IDLE);
 
-  /* Flushg the FIFO */
+  /* Flush the FIFO */
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("2. Flushing the FIFO buffer");
   clearFIFO();
@@ -574,20 +574,44 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   return 0;
 }
 
-bool Adafruit_MFRC630::mifare_dump(float timeout)
+uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
 {
-  uint16_t atqa;
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Selecting a tag");
+  DEBUG_TIMESTAMP();
 
-  /* See if you can detect a card. */
-  atqa = iso14443aRequest();
+  /* Cancel any current command */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("1. Sending IDLE (Cancel current command)");
+  writeCommand(MFRC630_CMD_IDLE);
 
-  /* If ATQA is non-zero, a card was likely found. */
-  if (atqa) {
-    uint8_t sak;
-    uint8_t uid[10] = { 0 };
+  /* Flush the FIFO */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("2. Flushing the FIFO buffer");
+  clearFIFO();
 
-    /* TODO! */
-  }
+  /* Allow the receiver and Error IRQs to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQOEN, (1 << 2) | (1 << 1));
+  /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3. Starting the select process.");
+
+  /* Configure the frame wait timeout using T0 (5ms max). */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.a Configuring timeout (211.875kHz, post TX, 5ms timeout).");
+  write8(MFRC630_REG_T0_CONTROL, 0b10001);
+  /* 1 'tick' 4.72us, so 1100 = 5.2ms */
+  write8(MFRC630_REG_T0_RELOAD_HI, 1100 >> 8);
+  write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
+  write8(MFRC630_REG_T0_COUNTER_VAL_HI, 1100 >> 8);
+  write8(MFRC630_REG_T0_COUNTER_VAL_LO, 0xFF);
+
+  /* Set the cascade level */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("3.b Checking cascade level.");
+  uint8_t cascadelvl;
 
   return false;
 }
