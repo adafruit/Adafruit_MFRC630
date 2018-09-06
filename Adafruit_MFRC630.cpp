@@ -30,7 +30,7 @@
 void Adafruit_MFRC630::write8(byte reg, byte value)
 {
   TRACE_TIMESTAMP();
-  TRACE_PRINT("WRITING 0x");
+  TRACE_PRINT("Writing 0x");
   TRACE_PRINT(value, HEX);
   TRACE_PRINT(" to 0x");
   TRACE_PRINTLN(reg, HEX);
@@ -51,7 +51,7 @@ void Adafruit_MFRC630::writeBuffer(byte reg, byte len, uint8_t *buffer)
   uint8_t i;
 
   TRACE_TIMESTAMP();
-  TRACE_PRINT("WRITING ");
+  TRACE_PRINT("Writing ");
   TRACE_PRINT(len);
   TRACE_PRINT(" byte(s) to 0x");
   TRACE_PRINTLN(reg, HEX);
@@ -94,7 +94,7 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
   uint8_t i;
 
   TRACE_TIMESTAMP();
-  TRACE_PRINT("REQUESTING ");
+  TRACE_PRINT("Requesting ");
   TRACE_PRINT(len);
   TRACE_PRINT(" byte(s) from 0x");
   TRACE_PRINTLN(reg, HEX);
@@ -116,7 +116,7 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
   }
 
   TRACE_TIMESTAMP();
-  TRACE_PRINT("RESPONSE (len=");
+  TRACE_PRINT("Response (len=");
   TRACE_PRINT(len);
   TRACE_PRINT("):");
   for (i=0; i<len; i++)
@@ -262,7 +262,7 @@ int16_t Adafruit_MFRC630::readFIFOLen(void)
   DEBUG_TIMESTAMP();
   DEBUG_PRINT("FIFO contains ");
   DEBUG_PRINT(l);
-  DEBUG_PRINTLN(" bytes");
+  DEBUG_PRINTLN(" byte(s)");
 
   return l;
 }
@@ -287,7 +287,7 @@ int16_t Adafruit_MFRC630::readFIFO(uint16_t len, uint8_t *buffer)
   DEBUG_TIMESTAMP();
   DEBUG_PRINT("Reading ");
   DEBUG_PRINT(len);
-  DEBUG_PRINTLN(" bytes from FIFO");
+  DEBUG_PRINTLN(" byte(s) from FIFO");
 
   /* Read len bytes from the FIFO */
   for (uint16_t i = 0; i < len; i++)
@@ -317,9 +317,9 @@ int16_t Adafruit_MFRC630::writeFIFO(uint16_t len, uint8_t *buffer)
   }
 
   DEBUG_TIMESTAMP();
-  DEBUG_PRINT("WRITING ");
+  DEBUG_PRINT("Writing ");
   DEBUG_PRINT(len);
-  DEBUG_PRINTLN(" bytes to FIFO");
+  DEBUG_PRINTLN(" byte(s) to FIFO");
 
   /* Write len bytes to the FIFO */
   for (uint16_t i = 0; i < len; i++)
@@ -382,7 +382,7 @@ void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen,
        into the command register e.g.: the Idle-Command. */
 
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("Transceiving Command");
+  DEBUG_PRINTLN("Sending Command");
 
   /* Cancel any current command. */
   write8(MFRC630_REG_COMMAND, MFRC630_CMD_IDLE);
@@ -405,6 +405,70 @@ void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen,
 uint8_t Adafruit_MFRC630::getComStatus(void)
 {
   return (read8(MFRC630_REG_STATUS) & 0b111);
+}
+
+/**************************************************************************/
+/*!
+    @brief  Prints out n bytes of hex data.
+*/
+/**************************************************************************/
+void Adafruit_MFRC630::printHex(uint8_t *buf, size_t len)
+{
+  if (len) {
+    DEBUG_PRINT("[ ");
+  }
+  for (uint8_t i = 0; i < len; i++)
+  {
+    // DEBUG_PRINT("0x");
+    if (buf[i] < 16)
+    {
+      DEBUG_PRINT("0");
+    }
+    DEBUG_PRINT(buf[i], HEX);
+    DEBUG_PRINT(" ");
+  }
+  if (len) {
+    DEBUG_PRINT("]");
+  }
+}
+
+/**************************************************************************/
+/*!
+    @brief  Prints a human readable error code.
+*/
+/**************************************************************************/
+void Adafruit_MFRC630::printError(enum mfrc630errors err)
+{
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("ERROR! Danger, Will Robinson: ");
+
+  switch (err)
+  {
+      case MFRC630_ERROR_INTEG:
+        DEBUG_PRINTLN("Data integrity!");
+        break;
+      case MFRC630_ERROR_PROT:
+        DEBUG_PRINTLN("Protocol error!");
+        break;
+      case MFRC630_ERROR_COLLDET:
+        DEBUG_PRINTLN("Collision detected!");
+        break;
+      case MFRC630_ERROR_NODATA:
+        DEBUG_PRINTLN("No data!");
+        break;
+      case MFRC630_ERROR_MINFRAME:
+        DEBUG_PRINTLN("Frame data too small!");
+        break;
+      case MFRC630_ERROR_FIFOOVL:
+        DEBUG_PRINTLN("FIFO full!");
+        break;
+      case MFRC630_ERROR_FIFOWR:
+        DEBUG_PRINTLN("Couldn't write to FIFO!");
+        break;
+      case MFRC630_ERROR_EEPROM:
+        DEBUG_PRINTLN("EEPROM access!");
+        break;
+  }
 }
 
 /**************************************************************************/
@@ -530,7 +594,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   }
 
   /* Cancel the current command (in case we timed out or error occurred). */
-  write8(MFRC630_REG_COMMAND, MFRC630_CMD_IDLE);
+  writeCommand(MFRC630_CMD_IDLE);
 
   /* Check the RX IRQ, and exit appropriately if it has fired (error). */
   irqval = read8(MFRC630_REG_IRQ0);
@@ -593,10 +657,175 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
   write8(MFRC630_REG_T0_COUNTER_VAL_HI, 1100 >> 8);
   write8(MFRC630_REG_T0_COUNTER_VAL_LO, 0xFF);
 
-  /* Set the cascade level */
+  /* Set the cascade level (collision detection loop) */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("B. Checking cascade level.");
+  DEBUG_PRINTLN("B. Checking cascade level (collision detection).");
   uint8_t cascadelvl;
+  for (cascadelvl = 1; cascadelvl <= 3; cascadelvl++) {
+    uint8_t cmd;
+    uint8_t kbits = 0;                         /* Bits known in UID so far. */
+    uint8_t send_req[7] = { 0 };              /* TX buffer */
+    uint8_t *uid_this_level = &(send_req[2]); /* UID pointer */
+    uint8_t message_length;
+
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINT("Cascade level ");
+    DEBUG_PRINTLN(cascadelvl);
+
+    switch (cascadelvl) {
+      case 1:
+        cmd = ISO14443_CAS_LEVEL_1;
+        break;
+      case 2:
+        cmd = ISO14443_CAS_LEVEL_2;
+        break;
+      case 3:
+        cmd = ISO14443_CAS_LEVEL_3;
+        break;
+    }
+
+    /* Disable CRC. */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("a. Disabling CRC checks.");
+    write8(MFRC630_REG_TX_CRC_PRESET, 0x18);
+    write8(MFRC630_REG_RX_CRC_CON, 0x18);
+
+    /* As per ISO14443-3, limit coliision checks to 32 attempts. */
+    uint8_t cnum;
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("b. Collision detection (max 32 attempts).");
+    for (cnum = 0; cnum < 32; cnum++) {
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINT("Attempt = "); DEBUG_PRINT(cnum);
+      DEBUG_PRINT(", known bits = "); DEBUG_PRINT(kbits);
+      DEBUG_PRINT(" ");
+      printHex(uid_this_level, (kbits + 8 - 1) / 8);
+      DEBUG_PRINTLN("");
+
+      /* Clear the interrupts. */
+      write8(MFRC630_REG_IRQ0, 0b01111111);
+      write8(MFRC630_REG_IRQ1, 0b00111111);
+
+      /* Send the current collision level command */
+      send_req[0] = cmd;
+      send_req[1] = 0x20 + kbits;
+
+      /* Limit MFRC630_REG_TX_DATA_NUM to the correct number of bits. */
+      write8(MFRC630_REG_TX_DATA_NUM, (kbits % 8) | (1 << 3));
+
+      // ValuesAfterColl: If cleared, every received bit after a collision is
+      // replaced by a zero. This function is needed for ISO/IEC14443 anticollision (0<<7).
+      // We want to shift the bits with RxAlign
+      uint8_t rxalign = kbits % 8;
+      write8(MFRC630_REG_RX_BIT_CTRL, (0 << 7) | (rxalign << 4));
+
+      /* Determine the message length */
+      if ((kbits % 8) == 0) {
+        message_length = ((kbits / 8)) + 2;
+      } else {
+        message_length = ((kbits / 8) + 1) + 2;
+      }
+
+      /* Send the command. */
+      writeCommand(MFRC630_CMD_TRANSCEIVE, message_length, send_req);
+
+      /* Wait until the command execution is complete. */
+      uint8_t irq1_value = 0;
+      while (!(irq1_value & 1)) {
+        irq1_value = read8(MFRC630_REG_IRQ1);
+        /* Check for a global interrrupt, which can only be ERR or RX. */
+        if (irq1_value & (1 << 6)) {
+          break;
+        }
+      }
+
+      /* Cancel any current command */
+      writeCommand(MFRC630_CMD_IDLE);
+
+      /* Parse results */
+      uint8_t irq0_value = read8(MFRC630_REG_IRQ0);
+      uint8_t error = read8(MFRC630_REG_ERROR);
+      uint8_t coll = read8(MFRC630_REG_RX_COLL);
+      uint8_t coll_p = 0;
+
+      /* Check if an error occured */
+      if (irq0_value & (1 << 1)) {
+        /* Display the error code in human-readable format. */
+        printError((enum mfrc630errors)error);
+        if (error & MFRC630_ERROR_COLLDET) {
+          /* Collision error, check if the collision position is valid */
+          if (coll & (1 << 7)) {
+            /* Valid, so check the collision position (bottom 7 bits). */
+            coll_p = coll & (~(1 << 7));
+            DEBUG_TIMESTAMP();
+            DEBUG_PRINT("Bit collision detected at bit ");
+            DEBUG_PRINTLN(coll_p);
+
+            uint8_t choice_pos = kbits + coll_p;
+            uint8_t selection = (uid[((choice_pos + (cascadelvl-1)*3)/8)] >>
+                    ((choice_pos) % 8)) & 1;
+            uid_this_level[((choice_pos)/8)] |= selection << ((choice_pos) % 8);
+            kbits++;
+
+            DEBUG_TIMESTAMP();
+            DEBUG_PRINT("'uid_this_level' is now ");
+            DEBUG_PRINT(kbits);
+            DEBUG_PRINT(": ");
+            printHex(uid_this_level, 10);
+            DEBUG_PRINTLN("");
+          } else {
+            /* Invalid collision position (bit 7 = 0) */
+            DEBUG_TIMESTAMP();
+            DEBUG_PRINTLN("Bit collision detected, but no valid position.");
+            coll_p = 0x20 - kbits;
+          } /* End: if (coll & (1 << 7)) */
+        } else {
+          DEBUG_TIMESTAMP();
+          DEBUG_PRINTLN("Unhandled error.");
+          coll_p = 0x20 - kbits;
+        } /* End: if (error & MFRC630_ERROR_COLLDET) */
+      } else if (irq0_value & (1 << 2)) {
+        /* We have data and no collision, all is well in the world! */
+        coll_p = 0x20 - kbits;
+        DEBUG_TIMESTAMP();
+        DEBUG_PRINTLN("Receive data and no bit collision!");
+      } else {
+        /* Probably no card */
+        DEBUG_TIMESTAMP();
+        DEBUG_PRINTLN("No error and no data = No card");
+        return 0;
+      } /* End: if (irq0_value & (1 << 1)) */
+
+      /* Read the UID so far */
+      uint16_t rxlen = readFIFOLen();
+      uint8_t buf[5]; /* UID = 4 bytes + BCC */
+      readFIFO(rxlen < 5 ? rxlen : 5, buf);
+
+      /*
+       * Move current buffer contents into the UID placeholder, OR'ing the
+       * results so that we don't lose the bit we set if you have a collision.
+       */
+      uint8_t rbx;
+      for (rbx = 0; (rbx < rxlen); rbx++) {
+        uid_this_level[(kbits / 8) + rbx] |= buf[rbx];
+      }
+      kbits += coll_p;
+
+      if ((kbits >= 32)) {
+        DEBUG_TIMESTAMP();
+        DEBUG_PRINT("Leaving collision loop: uid ");
+        DEBUG_PRINT(kbits);
+        DEBUG_PRINTLN(" bits long");
+        DEBUG_TIMESTAMP();
+        printHex(uid_this_level, kbits/8);
+        DEBUG_PRINTLN("");
+        break;  /* Exit the collision loop */
+      }
+    } /* End: for (cnum = 0; cnum < 32; cnum++) */
+
+    /* TODO: Check if the BCC matches ... */
+
+  } /* End: for (cascadelvl = 1; cascadelvl <= 3; cascadelvl++) */
 
   return false;
 }

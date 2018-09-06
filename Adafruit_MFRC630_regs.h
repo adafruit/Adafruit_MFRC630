@@ -159,4 +159,16 @@ enum mfrc630radiocfg
   MFRC630_LAST
 };
 
+enum mfrc630errors
+{
+  MFRC630_ERROR_EEPROM    = (1 << 7), /**< EEPROM error. */
+  MFRC630_ERROR_FIFOWR    = (1 << 6), /**< FIFO write error. */
+  MFRC630_ERROR_FIFOOVL   = (1 << 5), /**< FIFO already full! */
+  MFRC630_ERROR_MINFRAME  = (1 << 4), /**< Not enough data in frame. */
+  MFRC630_ERROR_NODATA    = (1 << 3), /**< FIFO empty! */
+  MFRC630_ERROR_COLLDET   = (1 << 2), /**< Collision detection, see RxColl. */
+  MFRC630_ERROR_PROT      = (1 << 1), /**< Protocol error. */
+  MFRC630_ERROR_INTEG     = (1 << 0)  /**< Data integrity error. */
+};
+
 #endif

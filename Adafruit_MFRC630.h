@@ -69,7 +69,7 @@ class Adafruit_MFRC630
     int16_t writeFIFO(uint16_t len, uint8_t *buffer);
     void    clearFIFO(void);
 
-    /* State machine command helpers (see section 7.10) */
+    /* Command wrappers */
     void writeCommand(byte command);
     void writeCommand(byte command, uint8_t paramlen, uint8_t *params);
 
@@ -93,6 +93,9 @@ class Adafruit_MFRC630
     void writeBuffer(byte reg, byte len, uint8_t *buffer);
     byte read8(byte reg);
     byte readBuffer(byte reg, byte len, uint8_t *buffer);
+
+    void printHex(uint8_t *buf, size_t len);
+    void printError(enum mfrc630errors err);
 
     uint16_t iso14443aCommand(enum iso14443_cmd cmd);
 };
