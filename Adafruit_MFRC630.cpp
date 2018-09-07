@@ -788,7 +788,7 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
         /* We have data and no collision, all is well in the world! */
         coll_p = 0x20 - kbits;
         DEBUG_TIMESTAMP();
-        DEBUG_PRINTLN("Receive data and no bit collision!");
+        DEBUG_PRINTLN("Received data, no bit collision!");
       } else {
         /* Probably no card */
         DEBUG_TIMESTAMP();
@@ -823,9 +823,115 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
       }
     } /* End: for (cnum = 0; cnum < 32; cnum++) */
 
-    /* TODO: Check if the BCC matches ... */
+    /* Check if the BCC matches ... */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("C. Checking BCC for data integrity.");
+    uint8_t bcc_val = uid_this_level[4];
+    uint8_t bcc_calc = uid_this_level[0]^
+                       uid_this_level[1]^
+                       uid_this_level[2]^
+                       uid_this_level[3];
+    if (bcc_val != bcc_calc) {
+      DEBUG_PRINTLN("ERROR: BCC mistmatch!\n");
+      return 0;
+    }
+
+    /* Clear the interrupts. */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("D. Clearing and configuring interrupts.");
+    write8(MFRC630_REG_IRQ0, 0b01111111);
+    write8(MFRC630_REG_IRQ1, 0b00111111);
+
+    send_req[0] = cmd;
+    send_req[1] = 0x70;
+    send_req[6] = bcc_calc;
+    message_length = 7;
+
+    /* Re-enable CRCs. */
+    write8(MFRC630_REG_TX_CRC_PRESET, 0x18 | 1);
+    write8(MFRC630_REG_RX_CRC_CON, 0x18 | 1);
+
+    /* Reset the TX and RX registers (disable alignment, transmit full bytes) */
+    write8(MFRC630_REG_TX_DATA_NUM, (kbits % 8) | (1 << 3));
+    uint8_t rxalign = 0;
+    write8(MFRC630_REG_RX_BIT_CTRL, (0 << 7) | (rxalign << 4));
+
+    /* Send the command. */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("E. Sending collision command");
+    writeCommand(MFRC630_CMD_TRANSCEIVE, message_length, send_req);
+
+    /* Wait until the command execution is complete. */
+    uint8_t irq1_value = 0;
+    while (!(irq1_value & 1)) {
+      irq1_value = read8(MFRC630_REG_IRQ1);
+      /* Check for a global interrrupt, which can only be ERR or RX. */
+      if (irq1_value & (1 << 6)) {
+        break;
+      }
+    }
+    writeCommand(MFRC630_CMD_IDLE);
+
+    /* Check the source of exiting the loop. */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("F. Command complete, verifying proper exit.");
+    uint8_t irq0_value = read8(MFRC630_REG_IRQ0);
+    /* Check the ERROR IRQ */
+    if (irq0_value & (1 << 1)) {
+      /* Check what kind of error. */
+      uint8_t error = read8(MFRC630_REG_ERROR);
+      if (error & (1 << 2)) {
+        /* Collision detecttion. */
+        printError(MFRC630_ERROR_COLLDET);
+        return 0;
+      }
+    }
+
+    /* Read SAK answer from fifo. */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("G. Checking SAK in response payload.");
+    uint8_t sak_len = readFIFOLen();
+    if (sak_len != 1) {
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINTLN("ERROR: NO SAK in response!\n");
+      return 0;
+    }
+    uint8_t sak_value;
+    readFIFO(sak_len, &sak_value);
+
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINT("SAK answer: ");
+    DEBUG_PRINTLN(sak_value);
+
+    /* Check if there is more data to read. */
+    if (sak_value & (1 << 2)) {
+      /* UID not yet complete, continue to next cascade. */
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINTLN("UID not complete ... looping to next cascade level.");
+      uint8_t UIDn;
+      for (UIDn=0; UIDn < 3; UIDn++) {
+        // uid_this_level[UIDn] = uid_this_level[UIDn + 1];
+        uid[(cascadelvl-1)*3 + UIDn] = uid_this_level[UIDn + 1];
+      }
+    } else {
+      DEBUG_TIMESTAMP();
+      DEBUG_PRINTLN("DONE! UID fully parsed, exiting.");
+      /* Done! */
+      /* Add current bytes at this level to the UID. */
+      uint8_t UIDn;
+      for (UIDn=0; UIDn < 4; UIDn++) {
+        uid[(cascadelvl-1)*3 + UIDn] = uid_this_level[UIDn];
+      }
+
+      /* Finally, return the length of the UID that's now at the uid pointer. */
+      return cascadelvl * 3 + 1;
+    }
+
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("Exiting cascade loop");
 
   } /* End: for (cascadelvl = 1; cascadelvl <= 3; cascadelvl++) */
 
-  return false;
+  /* Return 0 for UUID length if nothing was found. */
+  return 0;
 }

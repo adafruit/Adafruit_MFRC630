@@ -137,7 +137,7 @@ void radio_iso1443A_106_scan()
     uint8_t uidlen;
     uint8_t sak;
 
-    Serial.print("Found a ISO14443A-106 tag with ATQA 0x");
+    Serial.print("Found ISO14443A-106 tag with ATQA 0x");
     Serial.println(atqa, HEX);
     #if MOJIC_TRICK
     Serial.println("ᕙ(`▽´)ᕗ");
@@ -148,6 +148,22 @@ void radio_iso1443A_106_scan()
     Serial.println("(ﾉ◕ヮ◕)ﾉ*:・ﾟ✧");
     #endif
     uidlen = rfid.iso14443aSelect(uid, &sak);
+    if (uidlen) {
+      Serial.print("Got a UID! --> ");
+      for (uint8_t i=0; i<uidlen; i++) {
+        Serial.print(uid[i], HEX);
+        Serial.print(" ");
+      }
+      Serial.println("");
+      #if MOJIC_TRICK
+      Serial.println("ᕙ(`▽´)ᕗ");
+      #endif
+    } else {
+      Serial.println("What, no UID found! Did someone steal my tag? It was here a second ago!!");
+      #if MOJIC_TRICK
+      Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
+      #endif
+    }
   }
   else
   {

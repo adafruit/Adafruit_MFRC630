@@ -27,7 +27,7 @@
 #define MFRC630_VERBOSITY_RELEASE     (0)   /* No debug output */
 #define MFRC630_VERBOSITY_DEBUG       (1)   /* Debug message output */
 #define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
-#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_DEBUG)
+#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_RELEASE)
 
 /* Macro for debug output */
 #if MFRC630_VERBOSITY >= MFRC630_VERBOSITY_DEBUG
