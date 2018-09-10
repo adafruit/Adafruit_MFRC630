@@ -560,9 +560,9 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   write8(MFRC630_REG_IRQ0, 0b01111111);
   write8(MFRC630_REG_IRQ1, 0b00111111);
   /* Allow the receiver and Error IRQs to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQOEN, (1 << 2) | (1 << 1));
+  write8(MFRC630_REG_IRQOEN, MFRC630IRQ0_RXIRQ | MFRC630IRQ0_ERRIRQ);
   /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+  write8(MFRC630_REG_IRQ1EN, MFRC630IRQ1_TIMER0IRQ);
 
   /* Configure the frame wait timeout using T0 (5ms max). */
   DEBUG_TIMESTAMP();
@@ -584,10 +584,10 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("F. Waiting for a response or timeout.");
   uint8_t irqval = 0;
-  while (!(irqval & 1)) {
+  while (!(irqval & MFRC630IRQ1_TIMER0IRQ)) {
     irqval = read8(MFRC630_REG_IRQ1);
     /* Check for a global interrrupt, which can only be ERR or RX. */
-    if (irqval & (1 << 6)) {
+    if (irqval & MFRC630IRQ1_GLOBALIRQ) {
       break;
     }
   }
@@ -597,7 +597,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
 
   /* Check the RX IRQ, and exit appropriately if it has fired (error). */
   irqval = read8(MFRC630_REG_IRQ0);
-  if ( (!(irqval & (1<<2))) || (irqval & (1<<1)) ) {
+  if ( (!(irqval & MFRC630IRQ0_RXIRQ) || (irqval & MFRC630IRQ0_ERRIRQ))) {
     DEBUG_TIMESTAMP();
     DEBUG_PRINTLN("ERROR: No RX flag set, transceive failed or timed out.");
     return 0;
@@ -629,6 +629,11 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   return 0;
 }
 
+/*
+ * For high level details on the selection and anti-collision protocols see
+ * "Chip Type Identification Procedure" in 
+ * https://www.nxp.com/docs/en/application-note/AN10833.pdf
+ */
 uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
 {
   DEBUG_TIMESTAMP();
@@ -641,10 +646,10 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
   clearFIFO();
 
   /* Allow the receiver and Error IRQs to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQOEN, (1 << 2) | (1 << 1));
+  write8(MFRC630_REG_IRQOEN, MFRC630IRQ0_RXIRQ | MFRC630IRQ0_ERRIRQ);
 
   /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+  write8(MFRC630_REG_IRQ1EN, MFRC630IRQ1_TIMER0IRQ);
 
   /* Configure the frame wait timeout using T0 (5ms max). */
   /* 1 'tick' 4.72us, so 1100 = 5.2ms */
@@ -730,10 +735,10 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
 
       /* Wait until the command execution is complete. */
       uint8_t irq1_value = 0;
-      while (!(irq1_value & 1)) {
+      while (!(irq1_value & MFRC630IRQ1_TIMER0IRQ)) {
         irq1_value = read8(MFRC630_REG_IRQ1);
         /* Check for a global interrrupt, which can only be ERR or RX. */
-        if (irq1_value & (1 << 6)) {
+        if (irq1_value & MFRC630IRQ1_GLOBALIRQ) {
           break;
         }
       }
@@ -748,7 +753,7 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
       uint8_t coll_p = 0;
 
       /* Check if an error occured */
-      if (irq0_value & (1 << 1)) {
+      if (irq0_value & MFRC630IRQ0_ERRIRQ) {
         /* Display the error code in human-readable format. */
         printError((enum mfrc630errors)error);
         if (error & MFRC630_ERROR_COLLDET) {
@@ -783,7 +788,7 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
           DEBUG_PRINTLN("Unhandled error.");
           coll_p = 0x20 - kbits;
         } /* End: if (error & MFRC630_ERROR_COLLDET) */
-      } else if (irq0_value & (1 << 2)) {
+    } else if (irq0_value & MFRC630IRQ0_RXIRQ) {
         /* We have data and no collision, all is well in the world! */
         coll_p = 0x20 - kbits;
         DEBUG_TIMESTAMP();
@@ -862,10 +867,10 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
 
     /* Wait until the command execution is complete. */
     uint8_t irq1_value = 0;
-    while (!(irq1_value & 1)) {
+    while (!(irq1_value & MFRC630IRQ1_TIMER0IRQ)) {
       irq1_value = read8(MFRC630_REG_IRQ1);
       /* Check for a global interrrupt, which can only be ERR or RX. */
-      if (irq1_value & (1 << 6)) {
+      if (irq1_value & MFRC630IRQ1_GLOBALIRQ) {
         break;
       }
     }
@@ -876,10 +881,10 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
     DEBUG_PRINTLN("F. Command complete, verifying proper exit.");
     uint8_t irq0_value = read8(MFRC630_REG_IRQ0);
     /* Check the ERROR IRQ */
-    if (irq0_value & (1 << 1)) {
+    if (irq0_value & MFRC630IRQ0_ERRIRQ) {
       /* Check what kind of error. */
       uint8_t error = read8(MFRC630_REG_ERROR);
-      if (error & (1 << 2)) {
+      if (error & MFRC630_ERROR_COLLDET) {
         /* Collision detecttion. */
         printError(MFRC630_ERROR_COLLDET);
         return 0;
@@ -946,20 +951,20 @@ void Adafruit_MFRC630::mifareLoadKey(uint8_t *key)
   writeCommand(MFRC630_CMD_LOADKEY);
 }
 
-bool Adafruit_MFRC630::mifareAuth(uint8_t key_type, uint8_t sectornum,
+bool Adafruit_MFRC630::mifareAuth(uint8_t key_type, uint8_t blocknum,
   uint8_t *uid)
 {
   DEBUG_TIMESTAMP();
   DEBUG_PRINT("Authenticating Mifare block ");
-  DEBUG_PRINTLN(sectornum);
+  DEBUG_PRINTLN(blocknum);
 
   writeCommand(MFRC630_CMD_IDLE);
   clearFIFO();
 
   /* Allow the IDLE and Error IRQs to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQOEN, (1 << 4) | (1 << 1));
+  write8(MFRC630_REG_IRQOEN, MFRC630IRQ0_IDLEIRQ | MFRC630IRQ0_ERRIRQ);
   /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+  write8(MFRC630_REG_IRQ1EN, MFRC630IRQ1_TIMER0IRQ);
 
   /* Configure the frame wait timeout using T0 (10ms max). */
   /* 1 'tick' 4.72us, so 2000 = ~10ms */
@@ -979,29 +984,73 @@ bool Adafruit_MFRC630::mifareAuth(uint8_t key_type, uint8_t sectornum,
   writeCommand(MFRC630_CMD_IDLE);
   clearFIFO();
 
-  uint8_t params[6] = {key_type, sectornum, uid[0], uid[1], uid[2], uid[3]};
+  /*
+   * MFAUTHENT command has the following parameters:
+   * [0]    Key type (0x60 = KEYA, 0x61 = KEYB)
+   * [1]    Block address
+   * [2]    UID byte 0
+   * [3]    UID byte 1
+   * [4]    UID byte 2
+   * [5]    UID byte 3
+   *
+   * NOTE: When the MFAuthent command is active, any FIFO access is blocked!
+   */
+  uint8_t params[6] = {key_type, blocknum, uid[0], uid[1], uid[2], uid[3]};
   writeFIFO(6, params);
   writeCommand(MFRC630_CMD_MFAUTHENT);
 
+  /*
+   * This command terminates automatically when the MIFARE Classic card is
+   * authenticated and the bit MFCrypto1On is set to logic 1.
+   *
+   * This command does not terminate automatically when the card does not
+   * answer, therefore the timer should be initialized to automatic mode. In
+   * this case, beside the bit IdleIRQ the bit TimerIRQ can be used as
+   * termination criteria. During authentication processing the bits RxIRQ
+   * and TxIRQ are blocked. The Crypto1On shows if the authentication was
+   * successful. The Crypto1On is always valid.
+   *
+   * In case there is an error during authentication, the bit ProtocolErr in
+   * the Error register is set to logic 1 and the bit Crypto1On in register
+   * Status2Reg is set to logic 0.
+   */
+
   /* Wait until the command execution is complete. */
   uint8_t irq1_value = 0;
-  while (!(irq1_value & 1)) {
+  while (!(irq1_value & MFRC630IRQ1_TIMER0IRQ)) {
     irq1_value = read8(MFRC630_REG_IRQ1);
     /* Check for a global interrrupt, which can only be ERR or RX. */
-    if (irq1_value & (1 << 6)) {
+    if (irq1_value & MFRC630IRQ1_GLOBALIRQ) {
       break;
     }
   }
 
+#if 0
+  uint8_t irq0_value = read8(MFRC630_REG_IRQ0);
+  uint8_t error = read8(MFRC630_REG_ERROR);
+  uint8_t status = read8(MFRC630_REG_STATUS);
+  Serial.print("ERROR : "); Serial.println(error, HEX);
+  Serial.print("IRQ0  : "); Serial.println(irq0_value, HEX);
+  Serial.print("IRQ1  : "); Serial.println(irq1_value, HEX);
+  Serial.print("STATUS: "); Serial.println(status, HEX);
+#endif
+
+  /* Check the error flag (MFRC630_ERROR_PROT, etc.) */
+  uint8_t error = read8(MFRC630_REG_ERROR);
+  if (error) {
+      printError((enum mfrc630errors)error);
+      return false;
+  }
+
   /* Check if we timed out or got a response. */
-  if (irq1_value & 0x1) {
-    /* Timed out, no auth :( */
+  if (irq1_value & MFRC630IRQ1_TIMER0IRQ) {
+    /* Timed out, no auth! :( */
     return false;
   }
 
   /* Check the status register for CRYPTO1 flag (Mifare AUTH). */
   uint8_t status = read8(MFRC630_REG_STATUS);
-  return (status & (1 << 5)) ? true : false;
+  return (status & MFRC630STATUS_CRYPTO1ON) ? true : false;
 }
 
 void Adafruit_MFRC630::mifareDeauth(void)
@@ -1025,9 +1074,9 @@ uint16_t Adafruit_MFRC630::mifareReadBlock(uint8_t blocknum, uint8_t *buf)
   write8(MFRC630_REG_RX_CRC_CON, 0x18 | 1);
 
   /* Allow the IDLE and Error IRQs to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQOEN, (1 << 4) | (1 << 1));
+  write8(MFRC630_REG_IRQOEN, MFRC630IRQ0_IDLEIRQ | MFRC630IRQ0_ERRIRQ);
   /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
-  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+  write8(MFRC630_REG_IRQ1EN, MFRC630IRQ1_TIMER0IRQ);
 
   /* Configure the frame wait timeout using T0 (10ms max). */
   /* 1 'tick' 4.72us, so 2000 = ~10ms */
@@ -1049,17 +1098,17 @@ uint16_t Adafruit_MFRC630::mifareReadBlock(uint8_t blocknum, uint8_t *buf)
 
   /* Wait until the command execution is complete. */
   uint8_t irq1_value = 0;
-  while (!(irq1_value & 1)) {
+  while (!(irq1_value & MFRC630IRQ1_TIMER0IRQ)) {
     irq1_value = read8(MFRC630_REG_IRQ1);
     /* Check for a global interrrupt, which can only be ERR or RX. */
-    if (irq1_value & (1 << 6)) {
+    if (irq1_value & MFRC630IRQ1_GLOBALIRQ) {
       break;
     }
   }
   writeCommand(MFRC630_CMD_IDLE);
 
   /* Check if we timed out or got a response. */
-  if (irq1_value & 0x1) {
+  if (irq1_value & MFRC630IRQ1_TIMER0IRQ) {
     /* Timed out, no auth :( */
     Serial.println("TIMED OUT!");
     return 0;

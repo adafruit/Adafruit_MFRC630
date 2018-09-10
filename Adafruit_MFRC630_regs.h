@@ -171,4 +171,33 @@ enum mfrc630errors
   MFRC630_ERROR_INTEG     = (1 << 0)  /**< Data integrity error. */
 };
 
+enum mfrc630irq0
+{
+  MFRC630IRQ0_SET         = (1 << 7), /**< Sets/Clears interrupt. */
+  MFRC630IRQ0_HIALERTIRQ  = (1 << 6), /**< FIFO has reached top level. */
+  MFRC630IRQ0_LOALERTIRQ  = (1 << 5), /**< FIFO has reached bottom level. */
+  MFRC630IRQ0_IDLEIRQ     = (1 << 4), /**< Command terminated by itself. */
+  MFRC630IRQ0_TXIRQ       = (1 << 3), /**< Data transmission complete */
+  MFRC630IRQ0_RXIRQ       = (1 << 2), /**< Receiver detected end of stream */
+  MFRC630IRQ0_ERRIRQ      = (1 << 1), /**< FifoWrErr, FiFoOvl, ProtErr, NoDataErr, IntegErr. */
+  MFRC630IRQ0_RXSOF       = (1 << 0)  /**< RX start of frame detected. */
+};
+
+enum mfrc630irq1
+{
+  MFRC630IRQ1_SET         = (1 << 7), /**< Sets/Clears interrupt. */
+  MFRC630IRQ1_GLOBALIRQ   = (1 << 6), /**< Set if an enabled IRQ occured */
+  MFRC630IRQ1_LPCDIRQ     = (1 << 5), /**< Card detected in low power mode */
+  MFRC630IRQ1_TIMER4IRQ   = (1 << 4), /**< Timer 4 underflow */
+  MFRC630IRQ1_TIMER3IRQ   = (1 << 3), /**< Timer 3 underflow */
+  MFRC630IRQ1_TIMER2IRQ   = (1 << 2), /**< Timer 2 underflow */
+  MFRC630IRQ1_TIMER1IRQ   = (1 << 1), /**< Timer 1 underflow */
+  MFRC630IRQ1_TIMER0IRQ   = (1 << 0), /**< Timer 0 underflow */
+};
+
+enum mfrc630status
+{
+  MFRC630STATUS_CRYPTO1ON = (1 << 5)  /**< Mifare Classic Crypto engine on */
+};
+
 #endif

@@ -155,19 +155,18 @@ void radio_mifare_read(uint8_t *uid, uint8_t uidlen)
   }
 
   /* Use the default key for fresh Mifare cards. */
-  uint8_t key[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+  // uint8_t keyb[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 
   /* Set the key. */
-  rfid.mifareLoadKey(key);
+  rfid.mifareLoadKey(rfid.mifareKeyGlobal);
 
   /* Try to authenticate sectors 0..15 (all Mifare cards should have these!). */
   for (uint8_t s = 0; s < 16; s++) {
     Serial.print("Trying to authenticate sector "); Serial.print(s);
-    Serial.println(" with KEYA.");
+    Serial.println(" with KEYB.");
 
     /* Authenticate. */
-    bool auth = rfid.mifareAuth(MIFARE_CMD_AUTH_A, s, uid);
-    if (auth) {
+    if(rfid.mifareAuth(MIFARE_CMD_AUTH_B, s*4, uid)) {
         #if MOJIC_TRICK
         Serial.println(" ᕙ(`▽´)ᕗ");
         #endif
@@ -182,7 +181,7 @@ void radio_mifare_read(uint8_t *uid, uint8_t uidlen)
           if (HEX < 0x10) {
             Serial.print("0");
           }
-          Serial.print(key[k], HEX);
+          Serial.print(rfid.mifareKeyGlobal[k], HEX);
           Serial.print(" ");
         }
         Serial.println("");
