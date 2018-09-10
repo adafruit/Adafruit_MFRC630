@@ -5,7 +5,7 @@
 #define PDOWN_PIN         (27)
 
 /* Show me a mojic trick, dad! */
-#define MOJIC_TRICK       (1)
+#define MOJIC_TRICK       (0)
 
 /* Use the default I2C address */
 Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
@@ -26,8 +26,8 @@ static void print_buf_hex16(uint8_t *buf, size_t len)
   Serial.println(" ");
 }
 
-/* This functions sends a command to fill the FIFO with random numbers and then */
-/* reads the entire FIFO contents in 16 byte chunks */
+/* This functions sends a command to fill the FIFO with random numbers and */
+/* then reads the entire FIFO contents in 16 byte chunks */
 void fifo_read_test(void)
 {
   Serial.println("Reading randomly generated numbers from FIFO buffer");
@@ -37,7 +37,7 @@ void fifo_read_test(void)
   /* Note, this command requires a 10ms delay to fill the buffer! */
   delay(10);
 
-  /* Dump the FIFO 16 bytes at a time to stay within 32 byte I2C transaction limit */
+  /* Dump the FIFO 16 bytes at a time to stay within 32 byte I2C limit */
   uint8_t buff[16];
   int16_t len = rfid.readFIFOLen();
   while (len)
@@ -58,6 +58,7 @@ void fifo_write_test(void)
   /* Write data into the FIFO buffer */
   Serial.println("Writing 16 bytes into FIFO buffer");
   int16_t writelen = rfid.writeFIFO(sizeof(buff), buff);
+  (void)writelen;
 
   /* Read data back and display it*/
   memset(buff, 0, sizeof(buff));
@@ -73,6 +74,7 @@ void fifo_clear_test(void)
   /* Write data into the FIFO buffer */
   Serial.println("Writing 16 bytes into FIFO buffer");
   int16_t writelen = rfid.writeFIFO(sizeof(buff), buff);
+  (void)writelen;
   int16_t len = rfid.readFIFOLen();
   Serial.print("FIFO len = "),
   Serial.println(len);
@@ -117,6 +119,80 @@ void status_test(void)
   }
 }
 
+void radio_mifare_dump_sector(uint8_t sector_num)
+{
+  uint8_t readbuf[16] = { 0 };
+  /* Try to read four blocks inside the sector. */
+  for (uint8_t b = 0; b < 4 ; b++) {
+    uint8_t len = 0;
+    len = rfid.mifareReadBlock(sector_num * 4 + b, readbuf);
+    if (len == 0) {
+      /* No data returned! */
+      Serial.print("What!?! No data returned for block ");
+      Serial.print(sector_num * 4 + b);
+      Serial.println("!");
+      #if MOJIC_TRICK
+      Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
+      #endif
+      return;
+    } else {
+      /* Display the block contents. */
+      Serial.print(b); Serial.print(": ");
+      print_buf_hex16(readbuf, len);
+    }
+  }
+}
+
+/* Read the tag contents (assumes scan has been successfully called!). */
+void radio_mifare_read(uint8_t *uid, uint8_t uidlen)
+{
+  if (uidlen != 4) {
+    Serial.println("Not a Mifare tag!");
+    #if MOJIC_TRICK
+    Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
+    #endif
+    return;
+  }
+
+  /* Use the default key for fresh Mifare cards. */
+  uint8_t key[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+
+  /* Set the key. */
+  rfid.mifareLoadKey(key);
+
+  /* Try to authenticate sectors 0..15 (all Mifare cards should have these!). */
+  for (uint8_t s = 0; s < 16; s++) {
+    Serial.print("Trying to authenticate sector "); Serial.print(s);
+    Serial.println(" with KEYA.");
+
+    /* Authenticate. */
+    bool auth = rfid.mifareAuth(MIFARE_CMD_AUTH_A, s, uid);
+    if (auth) {
+        #if MOJIC_TRICK
+        Serial.println(" ᕙ(`▽´)ᕗ");
+        #endif
+        /* Dump the first sector. */
+        radio_mifare_dump_sector(s);
+        /* Deauth! */
+        rfid.mifareDeauth();
+    } else {
+        Serial.print("AUTH_A failed with ");
+        for (uint8_t k = 0; k < 6; k++){
+          Serial.print("0x");
+          if (HEX < 0x10) {
+            Serial.print("0");
+          }
+          Serial.print(key[k], HEX);
+          Serial.print(" ");
+        }
+        Serial.println("");
+        #if MOJIC_TRICK
+        Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
+        #endif
+    }
+  }
+}
+
 /* Configure the radio for ISO14443A-106 type tags and scan for the UID. */
 void radio_iso1443A_106_scan()
 {
@@ -158,8 +234,10 @@ void radio_iso1443A_106_scan()
       #if MOJIC_TRICK
       Serial.println("ᕙ(`▽´)ᕗ");
       #endif
+      /* Try to read and dump the card's contents. */
+      radio_mifare_read(uid, uidlen);
     } else {
-      Serial.println("What, no UID found! Did someone steal my tag? It was here a second ago!!");
+      Serial.println("What, no UID found! Did someone steal my tag!!");
       #if MOJIC_TRICK
       Serial.println("(ノ ゜Д゜)ノ ︵ ┻━┻");
       #endif

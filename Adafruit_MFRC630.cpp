@@ -393,7 +393,7 @@ void Adafruit_MFRC630::writeCommand(byte command, uint8_t paramlen,
   /* Write data to the FIFO */
   writeFIFO(paramlen, params);
 
-  /* Send the transceive command */
+  /* Send the command */
   write8(MFRC630_REG_COMMAND, command);
 }
 
@@ -568,7 +568,6 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN("D. Configuring Timer0 @ 211.875kHz, post TX, 5ms timeout.");
   write8(MFRC630_REG_T0_CONTROL, 0b10001);
-  /* 1 'tick' 4.72us, so 1100 = 5.2ms */
   write8(MFRC630_REG_T0_RELOAD_HI, 1100 >> 8);
   write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
   write8(MFRC630_REG_T0_COUNTER_VAL_HI, 1100 >> 8);
@@ -934,4 +933,142 @@ uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
 
   /* Return 0 for UUID length if nothing was found. */
   return 0;
+}
+
+void Adafruit_MFRC630::mifareLoadKey(uint8_t *key)
+{
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Loading Mifare key into crypto unit.");
+
+  writeCommand(MFRC630_CMD_IDLE);
+  clearFIFO();
+  writeFIFO(6, key);
+  writeCommand(MFRC630_CMD_LOADKEY);
+}
+
+bool Adafruit_MFRC630::mifareAuth(uint8_t key_type, uint8_t sectornum,
+  uint8_t *uid)
+{
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINT("Authenticating Mifare block ");
+  DEBUG_PRINTLN(sectornum);
+
+  writeCommand(MFRC630_CMD_IDLE);
+  clearFIFO();
+
+  /* Allow the IDLE and Error IRQs to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQOEN, (1 << 4) | (1 << 1));
+  /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+
+  /* Configure the frame wait timeout using T0 (10ms max). */
+  /* 1 'tick' 4.72us, so 2000 = ~10ms */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Configuring Timer0 @ 211.875kHz, post TX, 10ms timeout.");
+  write8(MFRC630_REG_T0_CONTROL, 0b10001);
+  write8(MFRC630_REG_T0_RELOAD_HI, 2000 >> 8);
+  write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
+  write8(MFRC630_REG_T0_COUNTER_VAL_HI, 2000 >> 8);
+  write8(MFRC630_REG_T0_COUNTER_VAL_LO, 0xFF);
+
+  /* Clear interrupts. */
+  write8(MFRC630_REG_IRQ0, 0b01111111);
+  write8(MFRC630_REG_IRQ1, 0b00111111);
+
+  /* Start of AUTH procedure. */
+  writeCommand(MFRC630_CMD_IDLE);
+  clearFIFO();
+
+  uint8_t params[6] = {key_type, sectornum, uid[0], uid[1], uid[2], uid[3]};
+  writeFIFO(6, params);
+  writeCommand(MFRC630_CMD_MFAUTHENT);
+
+  /* Wait until the command execution is complete. */
+  uint8_t irq1_value = 0;
+  while (!(irq1_value & 1)) {
+    irq1_value = read8(MFRC630_REG_IRQ1);
+    /* Check for a global interrrupt, which can only be ERR or RX. */
+    if (irq1_value & (1 << 6)) {
+      break;
+    }
+  }
+
+  /* Check if we timed out or got a response. */
+  if (irq1_value & 0x1) {
+    /* Timed out, no auth :( */
+    return false;
+  }
+
+  /* Check the status register for CRYPTO1 flag (Mifare AUTH). */
+  uint8_t status = read8(MFRC630_REG_STATUS);
+  return (status & (1 << 5)) ? true : false;
+}
+
+void Adafruit_MFRC630::mifareDeauth(void)
+{
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("De-authenticating");
+  write8(MFRC630_REG_STATUS, 0);
+}
+
+uint16_t Adafruit_MFRC630::mifareReadBlock(uint8_t blocknum, uint8_t *buf)
+{
+  clearFIFO();
+
+  /* TODO: Why do we need a delay between block reads?!? */
+  delay(10);
+
+  /* Enable CRC. */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("A. Disabling CRC checks.");
+  write8(MFRC630_REG_TX_CRC_PRESET, 0x18 | 1);
+  write8(MFRC630_REG_RX_CRC_CON, 0x18 | 1);
+
+  /* Allow the IDLE and Error IRQs to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQOEN, (1 << 4) | (1 << 1));
+  /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
+  write8(MFRC630_REG_IRQ1EN, (1 << 0));
+
+  /* Configure the frame wait timeout using T0 (10ms max). */
+  /* 1 'tick' 4.72us, so 2000 = ~10ms */
+  DEBUG_TIMESTAMP();
+  DEBUG_PRINTLN("Configuring Timer0 @ 211.875kHz, post TX, 10ms timeout.");
+  write8(MFRC630_REG_T0_CONTROL, 0b10001);  /* Start at end of TX, 211kHz */
+  write8(MFRC630_REG_T0_RELOAD_HI, 0xFF);
+  write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
+  write8(MFRC630_REG_T0_COUNTER_VAL_HI, 0xFF);
+  write8(MFRC630_REG_T0_COUNTER_VAL_LO, 0xFF);
+
+  /* Clear interrupts. */
+  write8(MFRC630_REG_IRQ0, 0b01111111);
+  write8(MFRC630_REG_IRQ1, 0b00111111);
+
+  /* Transceive the command. */
+  uint8_t req[2] = {MIFARE_CMD_READ, blocknum};
+  writeCommand(MFRC630_CMD_TRANSCEIVE, 2, req);
+
+  /* Wait until the command execution is complete. */
+  uint8_t irq1_value = 0;
+  while (!(irq1_value & 1)) {
+    irq1_value = read8(MFRC630_REG_IRQ1);
+    /* Check for a global interrrupt, which can only be ERR or RX. */
+    if (irq1_value & (1 << 6)) {
+      break;
+    }
+  }
+  writeCommand(MFRC630_CMD_IDLE);
+
+  /* Check if we timed out or got a response. */
+  if (irq1_value & 0x1) {
+    /* Timed out, no auth :( */
+    Serial.println("TIMED OUT!");
+    return 0;
+  }
+
+  /* Read the size and contents of the FIFO, and return the results. */
+  uint16_t buffer_length = readFIFOLen();
+  uint16_t rx_len = (buffer_length <= 16) ? buffer_length : 16;
+  readFIFO(rx_len, buf);
+
+  return rx_len;
 }
