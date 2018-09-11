@@ -10,8 +10,8 @@
 /* Use the default I2C address */
 Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
 
-/* Prints out 16 bytes of hex data in table format. */
-static void print_buf_hex16(uint8_t *buf, size_t len)
+/* Prints out len bytes of hex data in table format. */
+static void print_buf_hex(uint8_t *buf, size_t len)
 {
   for (uint8_t i = 0; i < len; i++)
   {
@@ -46,7 +46,7 @@ void fifo_read_test(void)
     int16_t readlen = rfid.readFIFO(len > 16 ? 16 : len, buff);
     len -= readlen;
     /* Display the buffer in 16 byte chunks. */
-    print_buf_hex16(buff, readlen);
+    print_buf_hex(buff, readlen);
   }
 }
 
@@ -63,7 +63,7 @@ void fifo_write_test(void)
   /* Read data back and display it*/
   memset(buff, 0, sizeof(buff));
   int16_t readlen = rfid.readFIFO(sizeof(buff), buff);
-  print_buf_hex16(buff, readlen);
+  print_buf_hex(buff, readlen);
 }
 
 /* This function clears the FIFO contents */
@@ -138,7 +138,7 @@ void radio_mifare_dump_sector(uint8_t sector_num)
     } else {
       /* Display the block contents. */
       Serial.print(sector_num * 4 + b); Serial.print(": ");
-      print_buf_hex16(readbuf, len);
+      print_buf_hex(readbuf, len);
     }
   }
 }
@@ -250,10 +250,75 @@ void radio_iso1443A_106_scan()
 }
 
 /*
+ * This more concise loop show the minimim requirements to dump the first 39
+ * 4 byte blocks of memory from an NTAG2xx card. No meaningful error-handling
+ * or debug output is present here, so this code is intended as a simple
+ * starting point for further work.
+ */
+bool radio_ntag156b_dump_minimal(void)
+{
+    bool rc;
+
+    /* Put the IC in a known-state. */
+    rfid.softReset();
+
+    /* Configure the radio for ISO14443A-106. */
+    rfid.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+
+    /* Request a tag (activates the near field, etc.). */
+    uint16_t atqa = rfid.iso14443aRequest();
+
+    /* Looks like we found a tag, move on to selection. */
+    if (atqa)
+    {
+        /* NTAG has a ATQA of 00 44 (Ultralight does as well!). */
+        if (atqa == 0x44) {
+            uint8_t uid[10] = { 0 };
+            uint8_t uidlen;
+            uint8_t sak;
+
+            /* Retrieve the UID and SAK values. */
+            uidlen = rfid.iso14443aSelect(uid, &sak);
+            Serial.print("Found a tag with UUID ");
+            for (uint8_t i = 0; i < uidlen; i++) {
+                Serial.print(uid[i], HEX);
+                Serial.print(" ");
+            }
+            Serial.println("");
+            if (uidlen == 7) {
+                /* Try to read the first 42 pages from the card. */
+                for (uint8_t i = 0; i < 42; i++) {
+                    /* We should be able to read the page contents now. */
+                    uint8_t pagebuf[4] = { 0, 0, 0, 0 };
+                    uint8_t len = rfid.ntagReadPage(i, pagebuf);
+                    Serial.print(i);
+                    Serial.print(": ");
+                    print_buf_hex(pagebuf, len);
+                }
+                rc = true;
+            } else {
+                /* Should be 7, not sure what kind of tag we have. */
+                Serial.print("Unexpected UID length: "); Serial.println(uidlen);
+                rc = false;
+            }
+        } else {
+            /* Found a tag, but it isn't NTAG */
+            Serial.print("Unexpected ATQA value: "); Serial.println(atqa, HEX);
+            rc = false;
+        }
+    } else {
+        /* No tag found! */
+        rc = false;
+    }
+
+    return rc;
+}
+
+/*
  * This more concise loop show the minimim requirements to dump the first 1K
  * of memory from a Mifare 1K or Mifare Plus compatible card. No meaningful
  * error-handling or debug output is present here, so this code is intended
- * as a simple starting point.
+ * as a simple starting point for further work.
  */
 bool radio_mifare1K_dump_minimal(void)
 {
@@ -298,8 +363,11 @@ bool radio_mifare1K_dump_minimal(void)
                     Serial.println(s);
                 }
             }
+            rc = true;
+        } else {
+            Serial.print("Unexpected UID length: "); Serial.println(uidlen);
+            rc = false;
         }
-        rc = true;
     } else {
         rc = false;     /* No tag found, return false. */
     }
@@ -351,8 +419,9 @@ void setup() {
    * This will be INCREDIBLY chatty on the I2C bus, but can be used as a
    * quick test to wait until a card enters the near field.
    */
-  Serial.println("Waiting for a Mifare-compatible card ...");
+  Serial.println("Waiting for an ISO14443-A compatible card ...");
   while (!radio_mifare1K_dump_minimal())
+  //while (!radio_ntag156b_dump_minimal())
   {
     delay(50);
   }

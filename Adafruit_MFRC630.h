@@ -76,6 +76,10 @@ class Adafruit_MFRC630
     /* Radio config. */
     bool configRadio(mfrc630radiocfg cfg);
 
+    /* General helpers */
+    uint8_t getComStatus(void);
+    void    softReset(void);
+
     /* Generic ISO14443a commands (common to any supported card variety). */
     uint16_t iso14443aRequest(void);
     uint16_t iso14443aWakeup(void);
@@ -85,13 +89,11 @@ class Adafruit_MFRC630
     void     mifareLoadKey(uint8_t *key);
     bool     mifareAuth(uint8_t key_type, uint8_t blocknum, uint8_t *uid);
     uint16_t mifareReadBlock(uint8_t blocknum, uint8_t *buf);
+    uint8_t  mifareKeyGlobal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+    uint8_t  mifareKeyNDEF[6]   = { 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 };
 
-    /* General helpers */
-    uint8_t getComStatus(void);
-    void    softReset(void);
-
-    uint8_t mifareKeyGlobal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-    uint8_t mifareKeyNDEF[6] = { 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 };
+    /* NTAG commands */
+    uint16_t ntagReadPage(uint16_t pagenum, uint8_t *buf);
 
   private:
     int8_t _pdown;
