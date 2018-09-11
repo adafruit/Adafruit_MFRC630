@@ -253,13 +253,18 @@ void radio_iso1443A_106_scan()
 
 void setup() {
   Serial.begin(115200);
+
+  while (!Serial) {
+    delay(1);
+  }
+  
   Serial.println("");
   Serial.println("-----------------------------");
   Serial.println("Adafruit MFRC630 RFID HW Test");
   Serial.println("-----------------------------");
 
   pinMode(LED_BUILTIN, OUTPUT);
-  pinMode(PIN_LED2, OUTPUT);
+  //pinMode(PIN_LED2, OUTPUT);
 
   /* Try to initialize the IC */
   if (!(rfid.begin())) {
@@ -285,7 +290,7 @@ void setup() {
 void loop() {
   for (int i = 0; i < 2; i++)
   {
-    digitalToggle(PIN_LED2);
+    digitalToggle(LED_BUILTIN);
     delay(1000);
   }
 }
