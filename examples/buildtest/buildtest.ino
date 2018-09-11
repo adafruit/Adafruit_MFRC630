@@ -2,7 +2,7 @@
 #include <Adafruit_MFRC630.h>
 
 /* Indicate the pin number where PDOWN is connected. */
-#define PDOWN_PIN         (27)
+#define PDOWN_PIN         (12)
 
 /* Show me a mojic trick, dad! */
 #define MOJIC_TRICK       (0)
@@ -270,7 +270,9 @@ void setup() {
   if (!(rfid.begin())) {
     Serial.println("Unable to initialize the MFRC630. Check wiring?");
     while(1) {
-      digitalToggle(LED_BUILTIN);
+      digitalWrite(LED_BUILTIN, HIGH);
+      delay(50);
+      digitalWrite(LED_BUILTIN, LOW);
       delay(50);
     }
   }
@@ -290,7 +292,9 @@ void setup() {
 void loop() {
   for (int i = 0; i < 2; i++)
   {
-    digitalToggle(LED_BUILTIN);
-    delay(1000);
+    digitalWrite(LED_BUILTIN, HIGH);
+    delay(500);
+    digitalWrite(LED_BUILTIN, LOW);
+    delay(500);
   }
 }
