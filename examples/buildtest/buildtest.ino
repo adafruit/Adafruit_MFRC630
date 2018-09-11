@@ -137,7 +137,7 @@ void radio_mifare_dump_sector(uint8_t sector_num)
       return;
     } else {
       /* Display the block contents. */
-      Serial.print(b); Serial.print(": ");
+      Serial.print(sector_num * 4 + b); Serial.print(": ");
       print_buf_hex16(readbuf, len);
     }
   }
@@ -249,6 +249,67 @@ void radio_iso1443A_106_scan()
   }
 }
 
+/*
+ * This more concise loop show the minimim requirements to dump the first 1K
+ * of memory from a Mifare 1K or Mifare Plus compatible card. No meaningful
+ * error-handling or debug output is present here, so this code is intended
+ * as a simple starting point.
+ */
+bool radio_mifare1K_dump_minimal(void)
+{
+    bool rc;
+
+    /* Put the IC in a known-state. */
+    rfid.softReset();
+
+    /* Configure the radio for ISO14443A-106. */
+    rfid.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+
+    /* Request a tag (activates the near field, etc.). */
+    uint16_t atqa = rfid.iso14443aRequest();
+
+    /* Looks like we found a tag, move on to selection. */
+    if (atqa)
+    {
+        uint8_t uid[10] = { 0 };
+        uint8_t uidlen;
+        uint8_t sak;
+
+        /* Retrieve the UID and SAK values. */
+        uidlen = rfid.iso14443aSelect(uid, &sak);
+        Serial.print("Found a tag with UUID ");
+        for (uint8_t i = 0; i < uidlen; i++) {
+            Serial.print(uid[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.println("");
+        if (uidlen == 4) {
+            /* Assume Mifare Classic/Plus and set the global/default key. */
+            rfid.mifareLoadKey(rfid.mifareKeyGlobal);
+            /* Try to authenticate sectors 0..15. */
+            for (uint8_t s = 0; s < 16; s++) {
+                /* Try to authenticate this sector. */
+                Serial.print("Sector "); Serial.println(s);
+                if(rfid.mifareAuth(MIFARE_CMD_AUTH_A, s*4, uid)) {
+                    /* We should be able to read the sector contents now. */
+                    radio_mifare_dump_sector(s);
+                } else {
+                    Serial.print("AUTH_A failed for sector ");
+                    Serial.println(s);
+                }
+            }
+        }
+        rc = true;
+    } else {
+        rc = false;     /* No tag found, return false. */
+    }
+
+    return rc;
+}
+
+/**
+ *
+ */
 void setup() {
   Serial.begin(115200);
 
@@ -284,15 +345,22 @@ void setup() {
   // status_test();
 
   /* Radio tests */
-  radio_iso1443A_106_scan();
+  // radio_iso1443A_106_scan();
+
+  /*
+   * This will be INCREDIBLY chatty on the I2C bus, but can be used as a
+   * quick test to wait until a card enters the near field.
+   */
+  Serial.println("Waiting for a Mifare-compatible card ...");
+  while (!radio_mifare1K_dump_minimal())
+  {
+    delay(50);
+  }
 }
 
 void loop() {
-  for (int i = 0; i < 2; i++)
-  {
-    digitalWrite(LED_BUILTIN, HIGH);
-    delay(500);
-    digitalWrite(LED_BUILTIN, LOW);
-    delay(500);
-  }
+  digitalWrite(LED_BUILTIN, HIGH);
+  delay(500);
+  digitalWrite(LED_BUILTIN, LOW);
+  delay(500);
 }

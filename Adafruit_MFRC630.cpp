@@ -409,6 +409,17 @@ uint8_t Adafruit_MFRC630::getComStatus(void)
 
 /**************************************************************************/
 /*!
+    @brief  Performs a soft reset of the IC
+*/
+/**************************************************************************/
+void Adafruit_MFRC630::softReset(void)
+{
+  writeCommand(MFRC630_CMD_SOFTRESET);
+  delay(100);
+}
+
+/**************************************************************************/
+/*!
     @brief  Prints out n bytes of hex data.
 */
 /**************************************************************************/
@@ -1103,7 +1114,7 @@ uint16_t Adafruit_MFRC630::mifareReadBlock(uint8_t blocknum, uint8_t *buf)
   /* Check if we timed out or got a response. */
   if (irq1_value & MFRC630IRQ1_TIMER0IRQ) {
     /* Timed out, no auth :( */
-    Serial.println("TIMED OUT!");
+    DEBUG_PRINTLN("TIMED OUT!");
     return 0;
   }
 

@@ -88,6 +88,7 @@ class Adafruit_MFRC630
 
     /* General helpers */
     uint8_t getComStatus(void);
+    void    softReset(void);
 
     uint8_t mifareKeyGlobal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
     uint8_t mifareKeyNDEF[6] = { 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 };
