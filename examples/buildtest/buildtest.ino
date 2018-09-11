@@ -163,17 +163,15 @@ void radio_mifare_read(uint8_t *uid, uint8_t uidlen)
   /* Try to authenticate sectors 0..15 (all Mifare cards should have these!). */
   for (uint8_t s = 0; s < 16; s++) {
     Serial.print("Trying to authenticate sector "); Serial.print(s);
-    Serial.println(" with KEYB.");
+    Serial.println(" with KEYA.");
 
     /* Authenticate. */
-    if(rfid.mifareAuth(MIFARE_CMD_AUTH_B, s*4, uid)) {
+    if(rfid.mifareAuth(MIFARE_CMD_AUTH_A, s*4, uid)) {
         #if MOJIC_TRICK
         Serial.println(" ᕙ(`▽´)ᕗ");
         #endif
         /* Dump the first sector. */
         radio_mifare_dump_sector(s);
-        /* Deauth! */
-        rfid.mifareDeauth();
     } else {
         Serial.print("AUTH_A failed with ");
         for (uint8_t k = 0; k < 6; k++){
@@ -257,7 +255,7 @@ void setup() {
   while (!Serial) {
     delay(1);
   }
-  
+
   Serial.println("");
   Serial.println("-----------------------------");
   Serial.println("Adafruit MFRC630 RFID HW Test");

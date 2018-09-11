@@ -631,7 +631,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
 
 /*
  * For high level details on the selection and anti-collision protocols see
- * "Chip Type Identification Procedure" in 
+ * "Chip Type Identification Procedure" in
  * https://www.nxp.com/docs/en/application-note/AN10833.pdf
  */
 uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak)
@@ -1051,13 +1051,6 @@ bool Adafruit_MFRC630::mifareAuth(uint8_t key_type, uint8_t blocknum,
   /* Check the status register for CRYPTO1 flag (Mifare AUTH). */
   uint8_t status = read8(MFRC630_REG_STATUS);
   return (status & MFRC630STATUS_CRYPTO1ON) ? true : false;
-}
-
-void Adafruit_MFRC630::mifareDeauth(void)
-{
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("De-authenticating");
-  write8(MFRC630_REG_STATUS, 0);
 }
 
 uint16_t Adafruit_MFRC630::mifareReadBlock(uint8_t blocknum, uint8_t *buf)

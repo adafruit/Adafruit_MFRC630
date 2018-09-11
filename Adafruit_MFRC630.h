@@ -84,7 +84,6 @@ class Adafruit_MFRC630
     /* Mifare commands. */
     void     mifareLoadKey(uint8_t *key);
     bool     mifareAuth(uint8_t key_type, uint8_t blocknum, uint8_t *uid);
-    void     mifareDeauth(void);
     uint16_t mifareReadBlock(uint8_t blocknum, uint8_t *buf);
 
     /* General helpers */
