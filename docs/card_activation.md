@@ -5,10 +5,10 @@ NTAG20x, etc.) can be seen in the various images below, and is implemented in **
 
 - `uint16_t iso14443aRequest(void)`
 - `uint8_t  iso14443aSelect(uint8_t *uid, uint8_t *sak)`
-- `void     mifareLoadKey(uint8_t *key)`
-- `bool     mifareAuth(uint8_t key_type, uint8_t blocknum, uint8_t *uid)`
 
 ## Step One: REQA/ATQA (Request for Card Details)
+
+> This process is implemented via `uint16_t iso14443aRequest(void)`
 
 The first part of the card activation process involves sending the `REQA`
 command (REQuest, Type A), which on success will gives us the
@@ -48,6 +48,8 @@ SAK values from the card.
 
 ## Step Two: Selection/Anti-Collision Loop (UID+SAK retrieval)
 
+> This process is implemented via `uint8_t iso14443aSelect(uint8_t *uid, uint8_t *sak)`
+
 The final step before ISO14443-A commands can be send to work with the card's
 contents is the **selection** process, which allows you to select a single card
 in the near field since multiple cards may be present.
@@ -85,3 +87,9 @@ Mifare, NTAG20x, etc..
 
 Each protocol will have it's own authentication and access requirements and
 procedures, described the official protocol documentation.
+
+Some key helper functions for working with Mifare tags, for example, are:
+
+- `void mifareLoadKey(uint8_t *key)`
+- `bool mifareAuth(uint8_t key_type, uint8_t blocknum, uint8_t *uid)`
+- `uint16_t mifareReadBlock(uint8_t blocknum, uint8_t *buf)`
