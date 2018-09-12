@@ -29,6 +29,8 @@
 #define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
 #define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_RELEASE)
 
+#define MFRC630_ALWAYS_DISP_ERRORS    (1)
+
 /* Macro for debug output */
 #if MFRC630_VERBOSITY >= MFRC630_VERBOSITY_DEBUG
   #define DEBUG_PRINT(...)   Serial.print(__VA_ARGS__)
@@ -53,6 +55,21 @@
   #define TRACE_PRINT(...)
   #define TRACE_PRINTLN(...)
   #define TRACE_TIMESTAMP(...)
+#endif
+
+/* Macro for error output */
+#if MFRC630_ALWAYS_DISP_ERRORS
+  #define ERROR_PRINT(...)   Serial.print(__VA_ARGS__)
+  #define ERROR_PRINTLN(...) Serial.println(__VA_ARGS__)
+  #define ERROR_TIMESTAMP()  Serial.print("\t! [+"); \
+                             Serial.print(millis()); \
+                             Serial.print("ms] ");
+#else
+#define ERROR_PRINT(...)   DEBUG_PRINT(__VA_ARGS__)
+#define ERROR_PRINTLN(...) DEBUG_PRINTLN(__VA_ARGS__)
+#define ERROR_TIMESTAMP()  DEBUG_PRINT("\t! [+"); \
+                           DEBUG_PRINT(millis()); \
+                           DEBUG_PRINT("ms] ");
 #endif
 
 class Adafruit_MFRC630
@@ -89,6 +106,7 @@ class Adafruit_MFRC630
     void     mifareLoadKey(uint8_t *key);
     bool     mifareAuth(uint8_t key_type, uint8_t blocknum, uint8_t *uid);
     uint16_t mifareReadBlock(uint8_t blocknum, uint8_t *buf);
+    uint16_t mifareWriteBlock(uint16_t blocknum, uint8_t *buf);
     uint8_t  mifareKeyGlobal[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
     uint8_t  mifareKeyNDEF[6]   = { 0xD3, 0xF7, 0xD3, 0xF7, 0xD3, 0xF7 };
 

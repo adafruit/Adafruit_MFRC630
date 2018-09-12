@@ -454,34 +454,34 @@ void Adafruit_MFRC630::printHex(uint8_t *buf, size_t len)
 /**************************************************************************/
 void Adafruit_MFRC630::printError(enum mfrc630errors err)
 {
-  DEBUG_TIMESTAMP();
-  DEBUG_PRINT("ERROR! Danger, Will Robinson: ");
+  ERROR_TIMESTAMP();
+  ERROR_PRINT("ERROR! Danger, Will Robinson: ");
 
   switch (err)
   {
       case MFRC630_ERROR_INTEG:
-        DEBUG_PRINTLN("Data integrity!");
+        ERROR_PRINTLN("Data integrity!");
         break;
       case MFRC630_ERROR_PROT:
-        DEBUG_PRINTLN("Protocol error!");
+        ERROR_PRINTLN("Protocol error!");
         break;
       case MFRC630_ERROR_COLLDET:
-        DEBUG_PRINTLN("Collision detected!");
+        ERROR_PRINTLN("Collision detected!");
         break;
       case MFRC630_ERROR_NODATA:
-        DEBUG_PRINTLN("No data!");
+        ERROR_PRINTLN("No data!");
         break;
       case MFRC630_ERROR_MINFRAME:
-        DEBUG_PRINTLN("Frame data too small!");
+        ERROR_PRINTLN("Frame data too small!");
         break;
       case MFRC630_ERROR_FIFOOVL:
-        DEBUG_PRINTLN("FIFO full!");
+        ERROR_PRINTLN("FIFO full!");
         break;
       case MFRC630_ERROR_FIFOWR:
-        DEBUG_PRINTLN("Couldn't write to FIFO!");
+        ERROR_PRINTLN("Couldn't write to FIFO!");
         break;
       case MFRC630_ERROR_EEPROM:
-        DEBUG_PRINTLN("EEPROM access!");
+        ERROR_PRINTLN("EEPROM access!");
         break;
   }
 }
@@ -1186,26 +1186,19 @@ uint16_t Adafruit_MFRC630::ntagReadPage(uint16_t pagenum, uint8_t *buf)
     return rx_len;
 }
 
-uint16_t Adafruit_MFRC630::ntagWritePage(uint16_t pagenum, uint8_t *buf)
+uint16_t Adafruit_MFRC630::mifareWriteBlock(uint16_t blocknum, uint8_t *buf)
 {
     clearFIFO();
 
-    /*
-     * For now, protect pages 0..3 and 40..44, and restrict writes to the safe
-     * 'user memory' range (see docs/NTAG.md for further details).
-     */
-    if ((pagenum < 4) || (pagenum > 44)) {
-        DEBUG_TIMESTAMP(...);
-        DEBUG_PRINT("Page number out of range for NTAG213: ");
-        DEBUG_PRINTLN(pagenum);
-        return 0;
-    }
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINT("Writing data to card @ 0x");
+    DEBUG_PRINTLN(pagenum);
 
-    /* Enable CRC. */
+    /* Enable CRC for TX (RX off!). */
     DEBUG_TIMESTAMP();
     DEBUG_PRINTLN("A. Disabling CRC checks.");
     write8(MFRC630_REG_TX_CRC_PRESET, 0x18 | 1);
-    write8(MFRC630_REG_RX_CRC_CON, 0x18 | 1);
+    write8(MFRC630_REG_RX_CRC_CON, 0x18 | 0);
 
     /* Allow the IDLE and Error IRQs to be propagated to the GlobalIRQ. */
     write8(MFRC630_REG_IRQOEN, MFRC630IRQ0_IDLEIRQ | MFRC630IRQ0_ERRIRQ);
@@ -1226,16 +1219,9 @@ uint16_t Adafruit_MFRC630::ntagWritePage(uint16_t pagenum, uint8_t *buf)
     write8(MFRC630_REG_IRQ0, 0b01111111);
     write8(MFRC630_REG_IRQ1, 0b00111111);
 
-    /*
-     * NTAG WRITE command = CMD, PAGENUM, CRCHI, CRCLO, D0, D1, D2, D3
-     * The simplified MIFARE COMPATIBILITY command is used here instead,
-     * which sends 16 bytes, but the last 12 are ignored.
-     */
-    uint8_t req[18] = {NTAG_CMD_COMP_WRITE, pagenum,
-        buf[0], buf[1], buf[2], buf[3]};
-
-    /* Transceive the command. */
-    writeCommand(MFRC630_CMD_TRANSCEIVE, 6, req);
+    /* Transceive the WRITE command. */
+    uint8_t req1[2] = {MIFARE_CMD_WRITE, blocknum};
+    writeCommand(MFRC630_CMD_TRANSCEIVE, sizeof(req1), req1);
 
     /* Wait until the command execution is complete. */
     uint8_t irq1_value = 0;
@@ -1251,18 +1237,106 @@ uint16_t Adafruit_MFRC630::ntagWritePage(uint16_t pagenum, uint8_t *buf)
     /* Check if we timed out or got a response. */
     if (irq1_value & MFRC630IRQ1_TIMER0IRQ) {
       /* Timed out, no auth :( */
-      Serial.print("TIMED OUT!");
       DEBUG_PRINTLN("TIMED OUT!");
       return 0;
     }
 
-    /* Read the size and contents of the FIFO, and return the results. */
+    /* Check if an error occured */
+    uint8_t error = read8(MFRC630_REG_ERROR);
+    uint8_t irq0_value = read8(MFRC630_REG_IRQ0);
+    if (irq0_value & MFRC630IRQ0_ERRIRQ) {
+      printError((enum mfrc630errors)error);
+      return 0;
+    }
+
+    /* We should have a single ACK byte in buffer at this point. */
     uint16_t buffer_length = readFIFOLen();
-    uint16_t rx_len = (buffer_length <= 4) ? buffer_length : 4;
-    readFIFO(rx_len, buf);
+    if (buffer_length != 1) {
+        DEBUG_TIMESTAMP();
+        DEBUG_PRINT("Unexpected response buffer len: ");
+        DEBUG_PRINTLN(buffer_length);
+        return 0;
+    }
 
-    Serial.print("FIFO Buffer Len: ");
-    Serial.println(buffer_length);
+    uint8_t ack = 0;
+    readFIFO(1, &ack);
+    if (ack != 0x0A) {
+        /* Missing valid ACK response! */
+        DEBUG_TIMESTAMP();
+        DEBUG_PRINT("Invalid ACK response: ");
+        DEBUG_PRINTLN(ack, HEX);
+        return 0;
+    }
 
-    return rx_len;
+    /* TODO: Verift values! */
+    /* Clear the interrupts. */
+    write8(MFRC630_REG_IRQ0, 0b01111111);
+    write8(MFRC630_REG_IRQ1, 0b00111111);
+
+    /* Transfer the page data. */
+    writeCommand(MFRC630_CMD_TRANSCEIVE, 16, buf);
+
+    /* Wait until the command execution is complete. */
+    irq1_value = 0;
+    while (!(irq1_value & MFRC630IRQ1_TIMER0IRQ)) {
+      irq1_value = read8(MFRC630_REG_IRQ1);
+      /* Check for a global interrrupt, which can only be ERR or RX. */
+      if (irq1_value & MFRC630IRQ1_GLOBALIRQ) {
+        break;
+      }
+    }
+    writeCommand(MFRC630_CMD_IDLE);
+
+    /* Check if we timed out or got a response. */
+    if (irq1_value & MFRC630IRQ1_TIMER0IRQ) {
+      /* Timed out, no auth :( */
+      DEBUG_PRINTLN("TIMED OUT!");
+      return 0;
+    }
+
+    /* Check if an error occured */
+    error = read8(MFRC630_REG_ERROR);
+    irq0_value = read8(MFRC630_REG_IRQ0);
+    if (irq0_value & MFRC630IRQ0_ERRIRQ) {
+      printError((enum mfrc630errors)error);
+      return 0;
+    }
+
+    /* We should have a single ACK byte in buffer at this point. */
+    buffer_length = readFIFOLen();
+    if (buffer_length != 1) {
+        DEBUG_TIMESTAMP();
+        DEBUG_PRINT("Unexpected response buffer len: ");
+        DEBUG_PRINTLN(buffer_length);
+        return 0;
+    }
+
+    ack = 0;
+    readFIFO(1, &ack);
+    if (ack != 0x0A) {
+        /* Missing valid ACK response! */
+        DEBUG_TIMESTAMP();
+        DEBUG_PRINT("Invalid ACK response: ");
+        DEBUG_PRINTLN(ack, HEX);
+        return 0;
+    }
+
+return 16;
+}
+
+uint16_t Adafruit_MFRC630::ntagWritePage(uint16_t pagenum, uint8_t *buf)
+{
+  /*
+   * For now, protect pages 0..3 and 40..44, and restrict writes to the safe
+   * 'user memory' range (see docs/NTAG.md for further details).
+   */
+  if ((pagenum < 4) || (pagenum > 44)) {
+    DEBUG_TIMESTAMP(...);
+    DEBUG_PRINT("Page number out of range for NTAG213: ");
+    DEBUG_PRINTLN(pagenum);
+    return 0;
+  }
+
+  /* Use the Mifare write, which is compatible with the NTAG cards. */
+  return mifareWriteBlock(pagenum, buf) == 16 ? 4 : 0;
 }

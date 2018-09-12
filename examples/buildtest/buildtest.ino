@@ -284,8 +284,8 @@ bool radio_ntag156b_write(void)
                 Serial.println("Writing data to page 7.");
                 uint8_t pagebuf[4] = { 0x12, 0x34, 0x56, 0x78 };
                 uint8_t len = rfid.ntagWritePage(7, pagebuf);
-                Serial.print("len = "); Serial.println(len);
-                rc = true;
+                /* Make sure we successfully wrote 4 bytes! */
+                rc = len == 4 ? true : false;
             } else {
                 /* Should be 7, not sure what kind of tag we have. */
                 Serial.print("Unexpected UID length: "); Serial.println(uidlen);
@@ -470,9 +470,9 @@ void setup() {
   /* Radio tests */
   // radio_iso1443A_106_scan();
 
-  //if(!radio_ntag156b_write()) {
-  //  Serial.println("Failed writing data to block 7!");
-  //}
+  if(!radio_ntag156b_write()) {
+    Serial.println("Failed writing data to block 7!");
+  }
 
   /*
    * This will be INCREDIBLY chatty on the I2C bus, but can be used as a
