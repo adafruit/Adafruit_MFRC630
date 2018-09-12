@@ -59,13 +59,21 @@ further details):
 #### User Memory
 
 - User memory can be restricted to using password verification.
-- User memory has the following factory default values for NTAG213:
+- User memory has the following factory default values for **NTAG213**:
 
   | Page | Values Within Page (bytes 0..3) |
   |------|---------------------------------|
   | 03   | E1 10 12 00                     |
   | 04   | 01 03 A0 0C                     |
   | 05   | 34 03 00 FE                     |
+
+ - By way of contrast, older **NTAG203** tags have the following default values:
+
+    | Page | Values Within Page (bytes 0..3) |
+    |------|---------------------------------|
+    | 03   | E1 10 12 00                     |
+    | 04   | 01 03 A0 **10**                 |
+    | 05   | **44** 03 00 FE                 |
 
 #### Dynamic Lock Bits
 
