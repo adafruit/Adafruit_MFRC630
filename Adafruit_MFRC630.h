@@ -94,6 +94,7 @@ class Adafruit_MFRC630
 
     /* NTAG commands */
     uint16_t ntagReadPage(uint16_t pagenum, uint8_t *buf);
+    uint16_t ntagWritePage(uint16_t pagenum, uint8_t *buf);
 
   private:
     int8_t _pdown;

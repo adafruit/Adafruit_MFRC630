@@ -141,6 +141,14 @@ enum mifare_cmd
   MIFARE_ULTRALIGHT_CMD_WRITE         = 0xA2
 };
 
+/* NTAG Commands */
+enum ntag_cmd
+{
+  NTAG_CMD_READ                       = 0x30, /**> NTAG page read. */
+  NTAG_CMD_WRITE                      = 0xA2, /**< NTAG-specfiic 4 byte write. */
+  NTAG_CMD_COMP_WRITE                 = 0xA0  /**< Mifare Classic 16-byte compat. write. */
+};
+
 /* 'ComState' values for for the MFRC630_REG_STATUS register (0x0B) */
 enum mfrc630comstat
 {

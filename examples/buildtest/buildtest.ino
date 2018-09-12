@@ -249,6 +249,61 @@ void radio_iso1443A_106_scan()
   }
 }
 
+bool radio_ntag156b_write(void)
+{
+    bool rc;
+
+    /* Put the IC in a known-state. */
+    rfid.softReset();
+
+    /* Configure the radio for ISO14443A-106. */
+    rfid.configRadio(MFRC630_RADIOCFG_ISO1443A_106);
+
+    /* Request a tag (activates the near field, etc.). */
+    uint16_t atqa = rfid.iso14443aRequest();
+
+    /* Looks like we found a tag, move on to selection. */
+    if (atqa)
+    {
+        /* NTAG has a ATQA of 00 44 (Ultralight does as well!). */
+        if (atqa == 0x44) {
+            uint8_t uid[10] = { 0 };
+            uint8_t uidlen;
+            uint8_t sak;
+
+            /* Retrieve the UID and SAK values. */
+            uidlen = rfid.iso14443aSelect(uid, &sak);
+            Serial.print("Found a tag with UUID ");
+            for (uint8_t i = 0; i < uidlen; i++) {
+                Serial.print(uid[i], HEX);
+                Serial.print(" ");
+            }
+            Serial.println("");
+            if (uidlen == 7) {
+                /* Write something distinct to page 7. */
+                Serial.println("Writing data to page 7.");
+                uint8_t pagebuf[4] = { 0x12, 0x34, 0x56, 0x78 };
+                uint8_t len = rfid.ntagWritePage(7, pagebuf);
+                Serial.print("len = "); Serial.println(len);
+                rc = true;
+            } else {
+                /* Should be 7, not sure what kind of tag we have. */
+                Serial.print("Unexpected UID length: "); Serial.println(uidlen);
+                rc = false;
+            }
+        } else {
+            /* Found a tag, but it isn't NTAG */
+            Serial.print("Unexpected ATQA value: "); Serial.println(atqa, HEX);
+            rc = false;
+        }
+    } else {
+        /* No tag found! */
+        rc = false;
+    }
+
+    return rc;
+}
+
 /*
  * This more concise loop show the minimim requirements to dump the first 39
  * 4 byte blocks of memory from an NTAG2xx card. No meaningful error-handling
@@ -415,13 +470,17 @@ void setup() {
   /* Radio tests */
   // radio_iso1443A_106_scan();
 
+  //if(!radio_ntag156b_write()) {
+  //  Serial.println("Failed writing data to block 7!");
+  //}
+
   /*
    * This will be INCREDIBLY chatty on the I2C bus, but can be used as a
    * quick test to wait until a card enters the near field.
    */
   Serial.println("Waiting for an ISO14443-A compatible card ...");
-  while (!radio_mifare1K_dump_minimal())
-  //while (!radio_ntag156b_dump_minimal())
+  //while (!radio_mifare1K_dump_minimal())
+  while (!radio_ntag156b_dump_minimal())
   {
     delay(50);
   }

@@ -1157,7 +1157,7 @@ uint16_t Adafruit_MFRC630::ntagReadPage(uint16_t pagenum, uint8_t *buf)
     write8(MFRC630_REG_IRQ1, 0b00111111);
 
     /* Transceive the command. */
-    uint8_t req[2] = {MIFARE_CMD_READ, pagenum};
+    uint8_t req[2] = {NTAG_CMD_READ, pagenum};
     writeCommand(MFRC630_CMD_TRANSCEIVE, 2, req);
 
     /* Wait until the command execution is complete. */
@@ -1182,6 +1182,87 @@ uint16_t Adafruit_MFRC630::ntagReadPage(uint16_t pagenum, uint8_t *buf)
     uint16_t buffer_length = readFIFOLen();
     uint16_t rx_len = (buffer_length <= 4) ? buffer_length : 4;
     readFIFO(rx_len, buf);
+
+    return rx_len;
+}
+
+uint16_t Adafruit_MFRC630::ntagWritePage(uint16_t pagenum, uint8_t *buf)
+{
+    clearFIFO();
+
+    /*
+     * For now, protect pages 0..3 and 40..44, and restrict writes to the safe
+     * 'user memory' range (see docs/NTAG.md for further details).
+     */
+    if ((pagenum < 4) || (pagenum > 44)) {
+        DEBUG_TIMESTAMP(...);
+        DEBUG_PRINT("Page number out of range for NTAG213: ");
+        DEBUG_PRINTLN(pagenum);
+        return 0;
+    }
+
+    /* Enable CRC. */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("A. Disabling CRC checks.");
+    write8(MFRC630_REG_TX_CRC_PRESET, 0x18 | 1);
+    write8(MFRC630_REG_RX_CRC_CON, 0x18 | 1);
+
+    /* Allow the IDLE and Error IRQs to be propagated to the GlobalIRQ. */
+    write8(MFRC630_REG_IRQOEN, MFRC630IRQ0_IDLEIRQ | MFRC630IRQ0_ERRIRQ);
+    /* Allow Timer0 IRQ to be propagated to the GlobalIRQ. */
+    write8(MFRC630_REG_IRQ1EN, MFRC630IRQ1_TIMER0IRQ);
+
+    /* Configure the frame wait timeout using T0 (10ms max). */
+    /* 1 'tick' 4.72us, so 2000 = ~10ms */
+    DEBUG_TIMESTAMP();
+    DEBUG_PRINTLN("Configuring Timer0 @ 211.875kHz, post TX, 10ms timeout.");
+    write8(MFRC630_REG_T0_CONTROL, 0b10001);  /* Start at end of TX, 211kHz */
+    write8(MFRC630_REG_T0_RELOAD_HI, 0xFF);
+    write8(MFRC630_REG_TO_RELOAD_LO, 0xFF);
+    write8(MFRC630_REG_T0_COUNTER_VAL_HI, 0xFF);
+    write8(MFRC630_REG_T0_COUNTER_VAL_LO, 0xFF);
+
+    /* Clear interrupts. */
+    write8(MFRC630_REG_IRQ0, 0b01111111);
+    write8(MFRC630_REG_IRQ1, 0b00111111);
+
+    /*
+     * NTAG WRITE command = CMD, PAGENUM, CRCHI, CRCLO, D0, D1, D2, D3
+     * The simplified MIFARE COMPATIBILITY command is used here instead,
+     * which sends 16 bytes, but the last 12 are ignored.
+     */
+    uint8_t req[18] = {NTAG_CMD_COMP_WRITE, pagenum,
+        buf[0], buf[1], buf[2], buf[3]};
+
+    /* Transceive the command. */
+    writeCommand(MFRC630_CMD_TRANSCEIVE, 6, req);
+
+    /* Wait until the command execution is complete. */
+    uint8_t irq1_value = 0;
+    while (!(irq1_value & MFRC630IRQ1_TIMER0IRQ)) {
+      irq1_value = read8(MFRC630_REG_IRQ1);
+      /* Check for a global interrrupt, which can only be ERR or RX. */
+      if (irq1_value & MFRC630IRQ1_GLOBALIRQ) {
+        break;
+      }
+    }
+    writeCommand(MFRC630_CMD_IDLE);
+
+    /* Check if we timed out or got a response. */
+    if (irq1_value & MFRC630IRQ1_TIMER0IRQ) {
+      /* Timed out, no auth :( */
+      Serial.print("TIMED OUT!");
+      DEBUG_PRINTLN("TIMED OUT!");
+      return 0;
+    }
+
+    /* Read the size and contents of the FIFO, and return the results. */
+    uint16_t buffer_length = readFIFOLen();
+    uint16_t rx_len = (buffer_length <= 4) ? buffer_length : 4;
+    readFIFO(rx_len, buf);
+
+    Serial.print("FIFO Buffer Len: ");
+    Serial.println(buffer_length);
 
     return rx_len;
 }
