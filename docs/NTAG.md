@@ -1,4 +1,4 @@
-# NTAG Cards
+# NTAG213 Cards
 
 NTAG21x cards are arranged in a series of **4 byte 'pages'**, similar to the
 earlier Mifare Ultralight tags. They have a **7-byte UID** (compared to the 4
