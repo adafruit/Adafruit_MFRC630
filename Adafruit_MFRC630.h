@@ -76,7 +76,7 @@ class Adafruit_MFRC630
 {
   public:
     /**
-     * Constructor
+     * Default I2C bus constructor
      *
      * @param pdown_pin     The power down pin number (required)/
      * @param i2c_addr      The I2C address to use (default value is empty)
@@ -84,13 +84,22 @@ class Adafruit_MFRC630
     Adafruit_MFRC630(int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
 
     /**
-     * Constructor
+     * Custom I2C bus constructor
      *
      * @param wireBus       The I2C bus to use
      * @param pdown_pin     The power down pin number (required)/
      * @param i2c_addr      The I2C address to use (default value is empty)
      */
     Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
+
+    /**
+     * HW SPI bus constructor
+     *
+     * @param pdown_pin     The power down pin number (required)/
+     * @param cs            The CS/Sel pin for HW SPI access.
+     * @param rsvd          Reserved, required to distiguish contructors. :(
+     */
+    Adafruit_MFRC630(int8_t pdown_pin, int8_t cs, int8_t rsvd);
 
     /**
      * Initialises the IC and performs some simple system checks.
@@ -130,7 +139,7 @@ class Adafruit_MFRC630
     /**
      * Clears the contents of the FIFO buffer.
      */
-    void    clearFIFO(void);
+    void clearFIFO(void);
 
     /* Command wrappers */
     /**
@@ -273,11 +282,11 @@ class Adafruit_MFRC630
     int8_t _pdown;
     uint8_t _i2c_addr;
     TwoWire* _wire;
+    uint8_t _cs;
 
     void write8(byte reg, byte value);
-    void writeBuffer(byte reg, byte len, uint8_t *buffer);
+    void writeBuffer(byte reg, uint16_t len, uint8_t *buffer);
     byte read8(byte reg);
-    byte readBuffer(byte reg, byte len, uint8_t *buffer);
 
     void printHex(uint8_t *buf, size_t len);
     void printError(enum mfrc630errors err);

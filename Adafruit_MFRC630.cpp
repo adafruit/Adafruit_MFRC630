@@ -15,6 +15,7 @@
  ***************************************************************************/
 
 #include <Wire.h>
+#include <SPI.h>
 
 #include "Adafruit_MFRC630.h"
 
@@ -35,10 +36,19 @@ void Adafruit_MFRC630::write8(byte reg, byte value)
   TRACE_PRINT(" to 0x");
   TRACE_PRINTLN(reg, HEX);
 
-  _wire->beginTransmission(_i2c_addr);
-  _wire->write(reg);
-  _wire->write(value);
-  _wire->endTransmission();
+  if (_i2c_addr > 0) {
+    /* I2C */
+    _wire->beginTransmission(_i2c_addr);
+    _wire->write(reg);
+    _wire->write(value);
+    _wire->endTransmission();
+  } else {
+    /* SPI */
+    digitalWrite(_cs, LOW);
+    SPI.transfer((reg << 1) | 0x00);
+    SPI.transfer(value);
+    digitalWrite(_cs, HIGH);
+  }
 }
 
 /**************************************************************************/
@@ -46,10 +56,8 @@ void Adafruit_MFRC630::write8(byte reg, byte value)
     @brief  Write a buffer to the specified register
 */
 /**************************************************************************/
-void Adafruit_MFRC630::writeBuffer(byte reg, byte len, uint8_t *buffer)
+void Adafruit_MFRC630::writeBuffer(byte reg, uint16_t len, uint8_t *buffer)
 {
-  uint8_t i;
-
   TRACE_TIMESTAMP();
   TRACE_PRINT("Writing ");
   TRACE_PRINT(len);
@@ -57,16 +65,27 @@ void Adafruit_MFRC630::writeBuffer(byte reg, byte len, uint8_t *buffer)
   TRACE_PRINTLN(reg, HEX);
 
   TRACE_TIMESTAMP();
-  _wire->beginTransmission(_i2c_addr);
-  _wire->write(reg);
-  for (i = 0; i < len; i++)
-  {
-    _wire->write(buffer[i]);
-    TRACE_PRINT("0x");
-    TRACE_PRINT(buffer[i], HEX);
-    TRACE_PRINT(" ");
+  if (_i2c_addr > 0) {
+      /* I2C */
+      _wire->beginTransmission(_i2c_addr);
+      _wire->write(reg);
+      for (uint16_t i = 0; i < len; i++)
+      {
+        _wire->write(buffer[i]);
+        TRACE_PRINT("0x");
+        TRACE_PRINT(buffer[i], HEX);
+        TRACE_PRINT(" ");
+      }
+      _wire->endTransmission();
+  } else {
+      /* SPI */
+      digitalWrite(_cs, LOW);
+      SPI.transfer((reg << 1) | 0x00);
+      for (uint8_t i = 0; i < len; i++){
+          SPI.transfer(buffer[i]);
+      }
+      digitalWrite(_cs, HIGH);
   }
-  _wire->endTransmission();
   TRACE_PRINTLN("");
 }
 
@@ -77,60 +96,50 @@ void Adafruit_MFRC630::writeBuffer(byte reg, byte len, uint8_t *buffer)
 /**************************************************************************/
 byte Adafruit_MFRC630::read8(byte reg)
 {
-  uint8_t value;
+    uint8_t resp = 0;
 
-  readBuffer(reg, 1, &value);
+    TRACE_TIMESTAMP();
+    TRACE_PRINT("Requesting ");
+    TRACE_PRINT(len);
+    TRACE_PRINT(" byte(s) from 0x");
+    TRACE_PRINTLN(reg, HEX);
 
-  return value;
-}
+    if (_i2c_addr > 0) {
+        /* I2C */
+        #ifdef __SAM3X8E__
+          /* http://forum.arduino.cc/index.php?topic=385377.msg2947227#msg2947227 */
+          _wire->requestFrom(_i2c_addr, 1, reg, 1, true);
+        #else
+          _wire->beginTransmission(_i2c_addr);
+          _wire->write(reg);
+          _wire->endTransmission();
+          _wire->requestFrom(_i2c_addr, 1);
+        #endif
 
-/**************************************************************************/
-/*!
-    @brief  Read 'len' bytes from the specified register
-*/
-/**************************************************************************/
-byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
-{
-  uint8_t i;
-
-  TRACE_TIMESTAMP();
-  TRACE_PRINT("Requesting ");
-  TRACE_PRINT(len);
-  TRACE_PRINT(" byte(s) from 0x");
-  TRACE_PRINTLN(reg, HEX);
-
-  #ifdef __SAM3X8E__
-    /* http://forum.arduino.cc/index.php?topic=385377.msg2947227#msg2947227 */
-    _wire->requestFrom(_i2c_addr, len, reg, 1, true);
-  #else
-    _wire->beginTransmission(_i2c_addr);
-    _wire->write(reg);
-    _wire->endTransmission();
-    _wire->requestFrom(_i2c_addr, (byte)len);
-  #endif
-
-  /* Dump the response into the supplied buffer */
-  for (i=0; i<len; i++)
-  {
-    buffer[i] = _wire->read();
-  }
-
-  TRACE_TIMESTAMP();
-  TRACE_PRINT("Response (len=");
-  TRACE_PRINT(len);
-  TRACE_PRINT("):");
-  for (i=0; i<len; i++)
-  {
-    TRACE_PRINT(" 0x");
-    if (buffer[i] <= 0xF)
-    {
-      TRACE_PRINT("0");
+        /* Dump the response into the supplied buffer */
+        resp = _wire->read();
+    } else {
+        /* SPI */
+        uint8_t tx[2] = {(reg << 1) | 0x01 };
+        uint8_t rx[2] = { 0 };
+        digitalWrite(_cs, LOW);
+        rx[0] = SPI.transfer(tx[0]);
+        rx[1] = SPI.transfer(tx[1]);
+        digitalWrite(_cs, HIGH);
+        resp = rx[1];
     }
-    TRACE_PRINT(buffer[i], HEX);
-  }
-  TRACE_PRINTLN("");
 
-  return len;
+    TRACE_TIMESTAMP();
+    TRACE_PRINT("Response = ");
+    TRACE_PRINT(" 0x");
+    if (resp <= 0xF)
+    {
+        TRACE_PRINT("0");
+    }
+    TRACE_PRINT(resp, HEX);
+    TRACE_PRINTLN("");
+
+    return resp;
 }
 
 /***************************************************************************
@@ -140,6 +149,7 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
  /**************************************************************************/
  /*!
      @brief  Instantiates a new instance of the Adafruit_MFRC630 class
+             using the default I2C bus.
  */
  /**************************************************************************/
  Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, uint8_t i2c_addr)
@@ -152,14 +162,19 @@ byte Adafruit_MFRC630::readBuffer(byte reg, byte len, uint8_t *buffer)
 
    /* Set the I2C bus instance */
    _wire = &Wire;
+
+   /* Disable SPI access. */
+   _cs = -1;
  }
 
 /**************************************************************************/
 /*!
     @brief  Instantiates a new instance of the Adafruit_MFRC630 class
+            using the specified I2C bus.
 */
 /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin, uint8_t i2c_addr)
+Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin,
+    uint8_t i2c_addr)
 {
   /* Set the PDOWN pin */
   _pdown = pdown_pin;
@@ -169,6 +184,32 @@ Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin, uint8_t i
 
   /* Set the I2C bus instance */
   _wire = wireBus;
+
+  /* Disable SPI access. */
+  _cs = -1;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Instantiates a new instance of the Adafruit_MFRC630 class
+            using the HW SPI bus.
+*/
+/**************************************************************************/
+Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, int8_t cs, int8_t rsvd)
+{
+  /* Set the PDOWN pin */
+  _pdown = pdown_pin;
+
+  /* Set the CS/SSEL pin */
+  _cs = cs;
+  pinMode(_cs, OUTPUT);
+
+  /* Disable I2C access */
+  _wire = NULL;
+  _i2c_addr = 0;
+
+  /* Ignore rsvd for now */
+  (void)rsvd;
 }
 
 /***************************************************************************
@@ -187,10 +228,18 @@ bool Adafruit_MFRC630::begin()
   TRACE_PRINTLN("\tTrace output enabled: . [+ms] Message");
   DEBUG_PRINTLN("");
 
-  /* Enable I2C */
+  /* Enable I2C or SPI */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINTLN("Initialising I2C");
-  _wire->begin();
+  if (_i2c_addr > 0) {
+      DEBUG_PRINTLN("Initialising I2C");
+      _wire->begin();
+  } else {
+      DEBUG_PRINTLN("Initialising SPI (Mode 0, MSB, DIV16)");
+      SPI.begin();
+      SPI.setDataMode(SPI_MODE0);
+      SPI.setBitOrder(MSBFIRST);
+      SPI.setClockDivider(SPI_CLOCK_DIV16);
+  }
 
   /* Reset the MFRC630 if possible */
   if (_pdown != -1)
@@ -1192,7 +1241,7 @@ uint16_t Adafruit_MFRC630::mifareWriteBlock(uint16_t blocknum, uint8_t *buf)
 
     DEBUG_TIMESTAMP();
     DEBUG_PRINT("Writing data to card @ 0x");
-    DEBUG_PRINTLN(pagenum);
+    DEBUG_PRINTLN(blocknum);
 
     /* Enable CRC for TX (RX off!). */
     DEBUG_TIMESTAMP();
@@ -1331,7 +1380,7 @@ uint16_t Adafruit_MFRC630::ntagWritePage(uint16_t pagenum, uint8_t *buf)
    * 'user memory' range (see docs/NTAG.md for further details).
    */
   if ((pagenum < 4) || (pagenum > 44)) {
-    DEBUG_TIMESTAMP(...);
+    DEBUG_TIMESTAMP();
     DEBUG_PRINT("Page number out of range for NTAG213: ");
     DEBUG_PRINTLN(pagenum);
     return 0;
