@@ -72,6 +72,12 @@
                            DEBUG_PRINT("ms] ");
 #endif
 
+enum mfrc630_transport {
+    MFRC630_TRANSPORT_I2C = 0,
+    MFRC630_TRANSPORT_SPI = 1,
+    MFRC630_TRANSPORT_SERIAL = 2
+};
+
 class Adafruit_MFRC630
 {
   public:
@@ -84,22 +90,35 @@ class Adafruit_MFRC630
     Adafruit_MFRC630(int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
 
     /**
-     * Custom I2C bus constructor
+     * Custom I2C bus constructor with user-defined I2C bus
      *
      * @param wireBus       The I2C bus to use
      * @param pdown_pin     The power down pin number (required)/
      * @param i2c_addr      The I2C address to use (default value is empty)
      */
-    Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
+    Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin = -1,
+        uint8_t i2c_addr = MFRC630_I2C_ADDR);
 
     /**
      * HW SPI bus constructor
      *
-     * @param pdown_pin     The power down pin number (required)/
+     * @param transport     The transport to use when communicating with the IC
      * @param cs            The CS/Sel pin for HW SPI access.
-     * @param rsvd          Reserved, required to distiguish contructors. :(
+     * @param pdown_pin     The power down pin number (required)/
      */
-    Adafruit_MFRC630(int8_t pdown_pin, int8_t cs, int8_t rsvd);
+    Adafruit_MFRC630(enum mfrc630_transport transport,
+        int8_t cs, int8_t pdown_pin = -1);
+
+    /**
+     * SW serial bus constructor
+     *
+     * @param transport     The transport to use when communicating with the IC
+     * @param tx            The TX pin
+     * @param rx            The RX pin
+     * @param pdown_pin     The power down pin number (required)/
+     */
+    Adafruit_MFRC630(enum mfrc630_transport transport,
+        int8_t tx, int8_t rx, int8_t pdown_pin = -1);
 
     /**
      * Initialises the IC and performs some simple system checks.
@@ -282,7 +301,10 @@ class Adafruit_MFRC630
     int8_t _pdown;
     uint8_t _i2c_addr;
     TwoWire* _wire;
-    uint8_t _cs;
+    int8_t _cs;
+    int8_t _tx;
+    int8_t _rx;
+    enum mfrc630_transport _transport;
 
     void write8(byte reg, byte value);
     void writeBuffer(byte reg, uint16_t len, uint8_t *buffer);

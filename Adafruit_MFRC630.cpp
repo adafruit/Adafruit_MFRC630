@@ -36,18 +36,24 @@ void Adafruit_MFRC630::write8(byte reg, byte value)
   TRACE_PRINT(" to 0x");
   TRACE_PRINTLN(reg, HEX);
 
-  if (_i2c_addr > 0) {
-    /* I2C */
-    _wire->beginTransmission(_i2c_addr);
-    _wire->write(reg);
-    _wire->write(value);
-    _wire->endTransmission();
-  } else {
-    /* SPI */
-    digitalWrite(_cs, LOW);
-    SPI.transfer((reg << 1) | 0x00);
-    SPI.transfer(value);
-    digitalWrite(_cs, HIGH);
+  switch(_transport) {
+      case MFRC630_TRANSPORT_I2C:
+          /* I2C */
+          _wire->beginTransmission(_i2c_addr);
+          _wire->write(reg);
+          _wire->write(value);
+          _wire->endTransmission();
+          break;
+      case MFRC630_TRANSPORT_SPI:
+          /* SPI */
+          digitalWrite(_cs, LOW);
+          SPI.transfer((reg << 1) | 0x00);
+          SPI.transfer(value);
+          digitalWrite(_cs, HIGH);
+          break;
+      case MFRC630_TRANSPORT_SERIAL:
+          /* TODO */
+          break;
   }
 }
 
@@ -65,26 +71,32 @@ void Adafruit_MFRC630::writeBuffer(byte reg, uint16_t len, uint8_t *buffer)
   TRACE_PRINTLN(reg, HEX);
 
   TRACE_TIMESTAMP();
-  if (_i2c_addr > 0) {
-      /* I2C */
-      _wire->beginTransmission(_i2c_addr);
-      _wire->write(reg);
-      for (uint16_t i = 0; i < len; i++)
-      {
-        _wire->write(buffer[i]);
-        TRACE_PRINT("0x");
-        TRACE_PRINT(buffer[i], HEX);
-        TRACE_PRINT(" ");
-      }
-      _wire->endTransmission();
-  } else {
-      /* SPI */
-      digitalWrite(_cs, LOW);
-      SPI.transfer((reg << 1) | 0x00);
-      for (uint8_t i = 0; i < len; i++){
-          SPI.transfer(buffer[i]);
-      }
-      digitalWrite(_cs, HIGH);
+  switch(_transport) {
+      case MFRC630_TRANSPORT_I2C:
+          /* I2C */
+          _wire->beginTransmission(_i2c_addr);
+          _wire->write(reg);
+          for (uint16_t i = 0; i < len; i++)
+          {
+            _wire->write(buffer[i]);
+            TRACE_PRINT("0x");
+            TRACE_PRINT(buffer[i], HEX);
+            TRACE_PRINT(" ");
+          }
+          _wire->endTransmission();
+          break;
+      case MFRC630_TRANSPORT_SPI:
+          /* SPI */
+          digitalWrite(_cs, LOW);
+          SPI.transfer((reg << 1) | 0x00);
+          for (uint8_t i = 0; i < len; i++){
+              SPI.transfer(buffer[i]);
+          }
+          digitalWrite(_cs, HIGH);
+          break;
+      case MFRC630_TRANSPORT_SERIAL:
+          /* TODO */
+          break;
   }
   TRACE_PRINTLN("");
 }
@@ -97,6 +109,9 @@ void Adafruit_MFRC630::writeBuffer(byte reg, uint16_t len, uint8_t *buffer)
 byte Adafruit_MFRC630::read8(byte reg)
 {
     uint8_t resp = 0;
+    /* Only for SPI, but need to be declared here. */
+    uint8_t tx[2] = {(reg << 1) | 0x01 };
+    uint8_t rx[2] = { 0 };
 
     TRACE_TIMESTAMP();
     TRACE_PRINT("Requesting ");
@@ -104,29 +119,32 @@ byte Adafruit_MFRC630::read8(byte reg)
     TRACE_PRINT(" byte(s) from 0x");
     TRACE_PRINTLN(reg, HEX);
 
-    if (_i2c_addr > 0) {
-        /* I2C */
-        #ifdef __SAM3X8E__
-          /* http://forum.arduino.cc/index.php?topic=385377.msg2947227#msg2947227 */
-          _wire->requestFrom(_i2c_addr, 1, reg, 1, true);
-        #else
-          _wire->beginTransmission(_i2c_addr);
-          _wire->write(reg);
-          _wire->endTransmission();
-          _wire->requestFrom(_i2c_addr, 1);
-        #endif
-
-        /* Dump the response into the supplied buffer */
-        resp = _wire->read();
-    } else {
-        /* SPI */
-        uint8_t tx[2] = {(reg << 1) | 0x01 };
-        uint8_t rx[2] = { 0 };
-        digitalWrite(_cs, LOW);
-        rx[0] = SPI.transfer(tx[0]);
-        rx[1] = SPI.transfer(tx[1]);
-        digitalWrite(_cs, HIGH);
-        resp = rx[1];
+    switch(_transport) {
+        case MFRC630_TRANSPORT_I2C:
+            /* I2C */
+            #ifdef __SAM3X8E__
+              /* http://forum.arduino.cc/index.php?topic=385377.msg2947227#msg2947227 */
+              _wire->requestFrom(_i2c_addr, 1, reg, 1, true);
+            #else
+              _wire->beginTransmission(_i2c_addr);
+              _wire->write(reg);
+              _wire->endTransmission();
+              _wire->requestFrom(_i2c_addr, 1);
+            #endif
+            /* Dump the response into the supplied buffer */
+            resp = _wire->read();
+            break;
+        case MFRC630_TRANSPORT_SPI:
+            /* SPI */
+            digitalWrite(_cs, LOW);
+            rx[0] = SPI.transfer(tx[0]);
+            rx[1] = SPI.transfer(tx[1]);
+            digitalWrite(_cs, HIGH);
+            resp = rx[1];
+            break;
+        case MFRC630_TRANSPORT_SERIAL:
+            /* TODO */
+            break;
     }
 
     TRACE_TIMESTAMP();
@@ -152,20 +170,27 @@ byte Adafruit_MFRC630::read8(byte reg)
              using the default I2C bus.
  */
  /**************************************************************************/
- Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, uint8_t i2c_addr)
- {
-   /* Set the PDOWN pin */
-   _pdown = pdown_pin;
+Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, uint8_t i2c_addr)
+{
+    /* Set the transport */
+    _transport = MFRC630_TRANSPORT_I2C;
 
-   /* Set the I2C address */
-   _i2c_addr = i2c_addr;
+    /* Set the PDOWN pin */
+    _pdown = pdown_pin;
 
-   /* Set the I2C bus instance */
-   _wire = &Wire;
+    /* Set the I2C address */
+    _i2c_addr = i2c_addr;
 
-   /* Disable SPI access. */
-   _cs = -1;
- }
+    /* Set the I2C bus instance */
+    _wire = &Wire;
+
+    /* Disable SPI access. */
+    _cs = -1;
+
+    /* Disable SW serial access */
+    _tx = -1;
+    _rx = -1;
+}
 
 /**************************************************************************/
 /*!
@@ -176,6 +201,9 @@ byte Adafruit_MFRC630::read8(byte reg)
 Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin,
     uint8_t i2c_addr)
 {
+  /* Set the transport */
+  _transport = MFRC630_TRANSPORT_I2C;
+
   /* Set the PDOWN pin */
   _pdown = pdown_pin;
 
@@ -187,6 +215,10 @@ Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin,
 
   /* Disable SPI access. */
   _cs = -1;
+
+  /* Disable SW serial access */
+  _tx = -1;
+  _rx = -1;
 }
 
 /**************************************************************************/
@@ -195,8 +227,12 @@ Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin,
             using the HW SPI bus.
 */
 /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, int8_t cs, int8_t rsvd)
+Adafruit_MFRC630::Adafruit_MFRC630(enum mfrc630_transport transport,
+    int8_t cs, int8_t pdown_pin)
 {
+  /* Set the transport */
+  _transport = transport;
+
   /* Set the PDOWN pin */
   _pdown = pdown_pin;
 
@@ -208,8 +244,39 @@ Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, int8_t cs, int8_t rsvd)
   _wire = NULL;
   _i2c_addr = 0;
 
-  /* Ignore rsvd for now */
-  (void)rsvd;
+  /* Disable SW serial access */
+  _tx = -1;
+  _rx = -1;
+}
+
+/**************************************************************************/
+/*!
+    @brief  Instantiates a new instance of the Adafruit_MFRC630 class
+            using SW serial.
+*/
+/**************************************************************************/
+Adafruit_MFRC630::Adafruit_MFRC630(enum mfrc630_transport transport,
+    int8_t tx, int8_t rx, int8_t pdown_pin)
+{
+  /* Set the transport */
+  _transport = transport;
+
+  /* Set the PDOWN pin */
+  _pdown = pdown_pin;
+
+  /* Set the tx/rx pins */
+  _tx = tx;
+  _rx = rx;
+
+  /* TODO: Setup SW serial pins? */
+  // pinMode(_tx, OUTPUT);
+
+  /* Disable I2C access */
+  _wire = NULL;
+  _i2c_addr = 0;
+
+  /* Disable SPI access. */
+  _cs = -1;
 }
 
 /***************************************************************************
@@ -228,17 +295,33 @@ bool Adafruit_MFRC630::begin()
   TRACE_PRINTLN("\tTrace output enabled: . [+ms] Message");
   DEBUG_PRINTLN("");
 
-  /* Enable I2C or SPI */
+  /* Enable I2C, SPI or SW serial */
   DEBUG_TIMESTAMP();
-  if (_i2c_addr > 0) {
-      DEBUG_PRINTLN("Initialising I2C");
-      _wire->begin();
-  } else {
-      DEBUG_PRINTLN("Initialising SPI (Mode 0, MSB, DIV16)");
-      SPI.begin();
-      SPI.setDataMode(SPI_MODE0);
-      SPI.setBitOrder(MSBFIRST);
-      SPI.setClockDivider(SPI_CLOCK_DIV16);
+  switch(_transport) {
+      case MFRC630_TRANSPORT_I2C:
+          DEBUG_PRINTLN("Initialising I2C");
+          _wire->begin();
+          break;
+      case MFRC630_TRANSPORT_SPI:
+          DEBUG_PRINTLN("Initialising SPI (Mode 0, MSB, DIV16)");
+          SPI.begin();
+          SPI.setDataMode(SPI_MODE0);
+          SPI.setBitOrder(MSBFIRST);
+          SPI.setClockDivider(SPI_CLOCK_DIV16);
+          break;
+      case MFRC630_TRANSPORT_SERIAL:
+          DEBUG_PRINTLN("Initialising SW serial");
+          /* TODO! */
+          break;
+  }
+
+  switch(_transport) {
+      case MFRC630_TRANSPORT_I2C:
+          break;
+      case MFRC630_TRANSPORT_SPI:
+          break;
+      case MFRC630_TRANSPORT_SERIAL:
+          break;
   }
 
   /* Reset the MFRC630 if possible */

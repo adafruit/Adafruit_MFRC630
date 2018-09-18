@@ -1,17 +1,13 @@
 #include <Wire.h>
 #include <Adafruit_MFRC630.h>
 
-/* Indicate the pin number where PDOWN is connected. */
-#define PDOWN_PIN         (A4)
-
-/* Indicate the CS/SSEL pin if using SPI. */
-#define SSEL_PIN          (A5)
-
-/* Use the default I2C address */
-// Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
+/* Indicate the pin number where PDOWN and CS/SSEL are connected. */
+#define PDOWN_PIN         (A2)
+#define SSEL_PIN          (A4)
 
 /* Use HW SPI */
-Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN, SSEL_PIN, 0);
+Adafruit_MFRC630 rfid = Adafruit_MFRC630(MFRC630_TRANSPORT_SPI,
+    SSEL_PIN, PDOWN_PIN);
 
 /* Prints out len bytes of hex data in table format. */
 static void print_buf_hex(uint8_t *buf, size_t len)

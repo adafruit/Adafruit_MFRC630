@@ -1,11 +1,18 @@
 #include <Wire.h>
 #include <Adafruit_MFRC630.h>
 
-/* Indicate the pin number where PDOWN is connected. */
-#define PDOWN_PIN         (A2)
+#include <SoftwareSerial.h>
 
-/* Use the default I2C address */
-Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
+/* Indicate the pin numbers where PDOWN/RX/TW are connected. */
+#define PDOWN_PIN         (A2)
+#define RX_PIN            (A3)
+#define TX_PIN            (A4)
+
+SoftwareSerial mySerial(RX_PIN, TX_PIN);
+
+/* Use UART */
+Adafruit_MFRC630 rfid = Adafruit_MFRC630(MFRC630_TRANSPORT_SERIAL,
+    TX_PIN, RX_PIN, PDOWN_PIN);
 
 /* Prints out len bytes of hex data in table format. */
 static void print_buf_hex(uint8_t *buf, size_t len)

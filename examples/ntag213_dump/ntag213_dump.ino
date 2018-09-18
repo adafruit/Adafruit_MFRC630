@@ -2,7 +2,7 @@
 #include <Adafruit_MFRC630.h>
 
 /* Indicate the pin number where PDOWN is connected. */
-#define PDOWN_PIN         (12)
+#define PDOWN_PIN         (A2)
 
 /* Use the default I2C address */
 Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);

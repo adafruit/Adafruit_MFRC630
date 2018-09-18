@@ -2,9 +2,9 @@
 #include <Adafruit_MFRC630.h>
 
 /* Indicate the pin number where PDOWN is connected. */
-#define PDOWN_PIN         (12)
+#define PDOWN_PIN         (A2)
 
-/* Show me a mojic trick, dad! */
+/* Show me some mojic! */
 #define MOJIC_TRICK       (0)
 
 /* Use the default I2C address */
