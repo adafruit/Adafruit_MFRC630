@@ -5,7 +5,7 @@
 #define PDOWN_PIN         (A2)
 
 /* Use the default I2C address */
-Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
+Adafruit_MFRC630 rfid = Adafruit_MFRC630(MFRC630_I2C_ADDR, PDOWN_PIN);
 
 /* Prints out len bytes of hex data in table format. */
 static void print_buf_hex(uint8_t *buf, size_t len)

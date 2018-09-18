@@ -86,20 +86,19 @@ class Adafruit_MFRC630
     /**
      * Default I2C bus constructor
      *
-     * @param pdown_pin     The power down pin number (required)/
      * @param i2c_addr      The I2C address to use (default value is empty)
+     * @param pdown_pin     The power down pin number (required)/
      */
-    Adafruit_MFRC630(int8_t pdown_pin = -1, uint8_t i2c_addr = MFRC630_I2C_ADDR);
+    Adafruit_MFRC630(uint8_t i2c_addr, int8_t pdown_pin = -1);
 
     /**
      * Custom I2C bus constructor with user-defined I2C bus
      *
      * @param wireBus       The I2C bus to use
-     * @param pdown_pin     The power down pin number (required)/
      * @param i2c_addr      The I2C address to use (default value is empty)
+     * @param pdown_pin     The power down pin number (required)/
      */
-    Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin = -1,
-        uint8_t i2c_addr = MFRC630_I2C_ADDR);
+    Adafruit_MFRC630(TwoWire* wireBus, uint8_t i2c_addr, int8_t pdown_pin = -1);
 
     /**
      * HW SPI bus constructor
@@ -107,6 +106,9 @@ class Adafruit_MFRC630
      * @param transport     The transport to use when communicating with the IC
      * @param cs            The CS/Sel pin for HW SPI access.
      * @param pdown_pin     The power down pin number (required)/
+     *
+     * @note This instance of the constructor requires the 'transport'
+     *       parameter to distinguish is from the default I2C version.
      */
     Adafruit_MFRC630(enum mfrc630_transport transport,
         int8_t cs, int8_t pdown_pin = -1);

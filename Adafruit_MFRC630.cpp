@@ -177,7 +177,7 @@ byte Adafruit_MFRC630::read8(byte reg)
              using the default I2C bus.
  */
  /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, uint8_t i2c_addr)
+Adafruit_MFRC630::Adafruit_MFRC630(uint8_t i2c_addr, int8_t pdown_pin)
 {
     /* Set the transport */
     _transport = MFRC630_TRANSPORT_I2C;
@@ -204,8 +204,8 @@ Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, uint8_t i2c_addr)
             using the specified I2C bus.
 */
 /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin,
-    uint8_t i2c_addr)
+Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, uint8_t i2c_addr,
+    int8_t pdown_pin)
 {
   /* Set the transport */
   _transport = MFRC630_TRANSPORT_I2C;
