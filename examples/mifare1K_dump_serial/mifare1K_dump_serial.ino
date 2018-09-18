@@ -8,11 +8,10 @@
 #define RX_PIN            (A3)
 #define TX_PIN            (A4)
 
-SoftwareSerial mySerial(RX_PIN, TX_PIN);
+SoftwareSerial SWSerial(RX_PIN, TX_PIN);
 
 /* Use UART */
-Adafruit_MFRC630 rfid = Adafruit_MFRC630(MFRC630_TRANSPORT_SERIAL,
-    TX_PIN, RX_PIN, PDOWN_PIN);
+Adafruit_MFRC630 rfid = Adafruit_MFRC630(&SWSerial, PDOWN_PIN);
 
 /* Prints out len bytes of hex data in table format. */
 static void print_buf_hex(uint8_t *buf, size_t len)

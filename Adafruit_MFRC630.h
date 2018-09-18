@@ -18,6 +18,8 @@
 
 #include "Arduino.h"
 #include <Wire.h>
+#include <SPI.h>
+#include <SoftwareSerial.h>
 #include "Adafruit_MFRC630_regs.h"
 #include "Adafruit_MFRC630_consts.h"
 
@@ -112,13 +114,10 @@ class Adafruit_MFRC630
     /**
      * SW serial bus constructor
      *
-     * @param transport     The transport to use when communicating with the IC
-     * @param tx            The TX pin
-     * @param rx            The RX pin
+     * @param serial        The SoftwareSerial instance to use
      * @param pdown_pin     The power down pin number (required)/
      */
-    Adafruit_MFRC630(enum mfrc630_transport transport,
-        int8_t tx, int8_t rx, int8_t pdown_pin = -1);
+    Adafruit_MFRC630(SoftwareSerial* serial, int8_t pdown_pin = -1);
 
     /**
      * Initialises the IC and performs some simple system checks.
@@ -301,9 +300,8 @@ class Adafruit_MFRC630
     int8_t _pdown;
     uint8_t _i2c_addr;
     TwoWire* _wire;
+    SoftwareSerial* _serial;
     int8_t _cs;
-    int8_t _tx;
-    int8_t _rx;
     enum mfrc630_transport _transport;
 
     void write8(byte reg, byte value);

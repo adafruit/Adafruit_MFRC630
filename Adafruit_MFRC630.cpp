@@ -14,9 +14,6 @@
   BSD license, all text above must be included in any redistribution
  ***************************************************************************/
 
-#include <Wire.h>
-#include <SPI.h>
-
 #include "Adafruit_MFRC630.h"
 
 /***************************************************************************
@@ -52,7 +49,9 @@ void Adafruit_MFRC630::write8(byte reg, byte value)
           digitalWrite(_cs, HIGH);
           break;
       case MFRC630_TRANSPORT_SERIAL:
-          /* TODO */
+          /* TODO: Adjust for 10-bit protocol! */
+          _serial->write(reg);
+          _serial->write(value);
           break;
   }
 }
@@ -95,7 +94,14 @@ void Adafruit_MFRC630::writeBuffer(byte reg, uint16_t len, uint8_t *buffer)
           digitalWrite(_cs, HIGH);
           break;
       case MFRC630_TRANSPORT_SERIAL:
-          /* TODO */
+          /* TODO: Adjust for 10-bit protocol! */
+          for (uint16_t i = 0; i < len; i++)
+          {
+            _serial->write(buffer[i]);
+            TRACE_PRINT("0x");
+            TRACE_PRINT(buffer[i], HEX);
+            TRACE_PRINT(" ");
+          }
           break;
   }
   TRACE_PRINTLN("");
@@ -143,7 +149,8 @@ byte Adafruit_MFRC630::read8(byte reg)
             resp = rx[1];
             break;
         case MFRC630_TRANSPORT_SERIAL:
-            /* TODO */
+            /* TODO: Adjust for 10-bit protocol! */
+            resp = _serial->read();
             break;
     }
 
@@ -188,8 +195,7 @@ Adafruit_MFRC630::Adafruit_MFRC630(int8_t pdown_pin, uint8_t i2c_addr)
     _cs = -1;
 
     /* Disable SW serial access */
-    _tx = -1;
-    _rx = -1;
+    _serial = NULL;
 }
 
 /**************************************************************************/
@@ -217,8 +223,7 @@ Adafruit_MFRC630::Adafruit_MFRC630(TwoWire* wireBus, int8_t pdown_pin,
   _cs = -1;
 
   /* Disable SW serial access */
-  _tx = -1;
-  _rx = -1;
+  _serial = NULL;
 }
 
 /**************************************************************************/
@@ -245,8 +250,7 @@ Adafruit_MFRC630::Adafruit_MFRC630(enum mfrc630_transport transport,
   _i2c_addr = 0;
 
   /* Disable SW serial access */
-  _tx = -1;
-  _rx = -1;
+  _serial = NULL;
 }
 
 /**************************************************************************/
@@ -255,21 +259,16 @@ Adafruit_MFRC630::Adafruit_MFRC630(enum mfrc630_transport transport,
             using SW serial.
 */
 /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(enum mfrc630_transport transport,
-    int8_t tx, int8_t rx, int8_t pdown_pin)
+Adafruit_MFRC630::Adafruit_MFRC630(SoftwareSerial* serial, int8_t pdown_pin)
 {
   /* Set the transport */
-  _transport = transport;
+  _transport = MFRC630_TRANSPORT_SERIAL;
 
   /* Set the PDOWN pin */
   _pdown = pdown_pin;
 
-  /* Set the tx/rx pins */
-  _tx = tx;
-  _rx = rx;
-
-  /* TODO: Setup SW serial pins? */
-  // pinMode(_tx, OUTPUT);
+  /* Set the SoftwareSerial instance */
+  _serial = serial;
 
   /* Disable I2C access */
   _wire = NULL;
@@ -311,16 +310,7 @@ bool Adafruit_MFRC630::begin()
           break;
       case MFRC630_TRANSPORT_SERIAL:
           DEBUG_PRINTLN("Initialising SW serial");
-          /* TODO! */
-          break;
-  }
-
-  switch(_transport) {
-      case MFRC630_TRANSPORT_I2C:
-          break;
-      case MFRC630_TRANSPORT_SPI:
-          break;
-      case MFRC630_TRANSPORT_SERIAL:
+          _serial->begin(115200);
           break;
   }
 
