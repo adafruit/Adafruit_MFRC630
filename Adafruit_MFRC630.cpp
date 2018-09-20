@@ -115,14 +115,13 @@ void Adafruit_MFRC630::writeBuffer(byte reg, uint16_t len, uint8_t *buffer)
 byte Adafruit_MFRC630::read8(byte reg)
 {
     uint8_t resp = 0;
-    /* Only for SPI, but need to be declared here. */
-    uint8_t tx[2] = {(reg << 1) | 0x01 };
+    uint8_t tx[2] = { 0 };
     uint8_t rx[2] = { 0 };
+    uint16_t uart_tx;
+    uint8_t timeout = 0;
 
     TRACE_TIMESTAMP();
-    TRACE_PRINT("Requesting ");
-    TRACE_PRINT(len);
-    TRACE_PRINT(" byte(s) from 0x");
+    TRACE_PRINT("Requesting 1 byte from 0x");
     TRACE_PRINTLN(reg, HEX);
 
     switch(_transport) {
@@ -143,14 +142,33 @@ byte Adafruit_MFRC630::read8(byte reg)
         case MFRC630_TRANSPORT_SPI:
             /* SPI */
             digitalWrite(_cs, LOW);
+            tx[0] = (reg << 1) | 0x01;
+            tx[1] = 0;
             rx[0] = SPI.transfer(tx[0]);
             rx[1] = SPI.transfer(tx[1]);
             digitalWrite(_cs, HIGH);
             resp = rx[1];
             break;
         case MFRC630_TRANSPORT_SERIAL:
-            /* TODO: Adjust for 10-bit protocol! */
-            resp = _serial->read();
+            /*
+             * UART uses a 10-bit protocol where the output format is:
+             * SA:A0:A1:A2:A3:A4:A5:A6:RD:SO
+             */
+            uart_tx = ((reg & 0x7F) << 8) | (1 << 15) | (0x3 << 6);
+            _serial->write((uint8_t)((uart_tx >> 8) & 0xFF));
+            _serial->write((uint8_t)(uart_tx & 0xFF));
+            timeout = 0;
+            while(_serial->available() < 2) {
+                delay(1);
+                timeout++;
+                if (timeout = 0xFF) {
+                    return 0;
+                }
+            }
+            rx[0] = _serial->read();
+            rx[1] = _serial->read();
+            resp = rx[0] << 1;
+            resp &= rx[1] >> 7;
             break;
     }
 
@@ -330,17 +348,16 @@ bool Adafruit_MFRC630::begin()
 
   /* Check device ID for bus response */
   DEBUG_TIMESTAMP();
-  DEBUG_PRINT("Checking I2C address 0x");
-  DEBUG_PRINTLN(_i2c_addr, HEX);
+  DEBUG_PRINTLN("Checking transport layer");
 
   /* Read the VERSION register */
   byte ver = read8(MFRC630_REG_VERSION);
 
-  /* If ver == 0xFF likely an I2C bus failure */
-  if (ver == 0xFF)
+  /* If ver == 0xFF or 0x0 likely a bus failure */
+  if ((ver == 0xFF) || (ver == 0))
   {
     DEBUG_TIMESTAMP();
-    DEBUG_PRINTLN("I2C bus failure!");
+    DEBUG_PRINTLN("Transport failure!");
     return false;
   }
 

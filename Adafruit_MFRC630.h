@@ -29,7 +29,7 @@
 #define MFRC630_VERBOSITY_RELEASE     (0)   /* No debug output */
 #define MFRC630_VERBOSITY_DEBUG       (1)   /* Debug message output */
 #define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
-#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_RELEASE)
+#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_TRACE)
 
 #define MFRC630_ALWAYS_DISP_ERRORS    (1)
 
