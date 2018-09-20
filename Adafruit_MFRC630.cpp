@@ -189,6 +189,7 @@ byte Adafruit_MFRC630::read8(byte reg)
             Serial.print(rx[0], BIN);
             Serial.print(" ");
             Serial.print(rx[1], BIN);
+            Serial.print(" ");
             Serial.println(rx[2], BIN);
             resp = rx[1];
             break;
