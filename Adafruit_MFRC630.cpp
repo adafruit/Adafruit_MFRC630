@@ -20,6 +20,16 @@
  PRIVATE FUNCTIONS
  ***************************************************************************/
 
+static unsigned char rev8_lookup[16] = {
+    0x0, 0x8, 0x4, 0xc, 0x2, 0xa, 0x6, 0xe,
+    0x1, 0x9, 0x5, 0xd, 0x3, 0xb, 0x7, 0xf
+};
+
+/** Uses the lookup table above to reverse a single byte. */
+uint8_t reverse8(uint8_t n) {
+   return (rev8_lookup[n & 0b1111] << 4) | rev8_lookup[n >> 4];
+}
+
  /**************************************************************************/
  /*!
      @brief  Write a byte to the specified register
@@ -116,9 +126,9 @@ byte Adafruit_MFRC630::read8(byte reg)
 {
     uint8_t resp = 0;
     uint8_t tx[2] = { 0 };
-    uint8_t rx[2] = { 0 };
+    uint8_t rx[3] = { 0 };
     uint16_t uart_tx;
-    uint8_t timeout = 0;
+    uint8_t timeout = 0xFFF;
 
     TRACE_TIMESTAMP();
     TRACE_PRINT("Requesting 1 byte from 0x");
@@ -152,23 +162,35 @@ byte Adafruit_MFRC630::read8(byte reg)
         case MFRC630_TRANSPORT_SERIAL:
             /*
              * UART uses a 10-bit protocol where the output format is:
-             * SA:A0:A1:A2:A3:A4:A5:A6:RD:SO
+             * SA[0]:A0:A1:A2:A3:A4:A5:A6:RD[1]:SO[1]
              */
-            uart_tx = ((reg & 0x7F) << 8) | (1 << 15) | (0x3 << 6);
+            uart_tx = (0 << 15) | (reverse8(reg) << 7) | (0x3 << 6);
+            //uart_tx = (0 << 15) | ((reg & 0x7F) << 8) | (0x3 << 6);
+            Serial.print("--> ");
+            Serial.println(uart_tx, BIN);
             _serial->write((uint8_t)((uart_tx >> 8) & 0xFF));
             _serial->write((uint8_t)(uart_tx & 0xFF));
-            timeout = 0;
-            while(_serial->available() < 2) {
+            while(_serial->available() < 3) {
                 delay(1);
-                timeout++;
-                if (timeout = 0xFF) {
+                timeout--;
+                if (timeout == 0) {
+                    Serial.println("Timed out!");
                     return 0;
                 }
             }
+            /*
+             * The reponse format is:
+             * SA[0]:A0:A1:A2:A3:A4:A5:A6:A7:SO[1]
+             */
             rx[0] = _serial->read();
             rx[1] = _serial->read();
-            resp = rx[0] << 1;
-            resp &= rx[1] >> 7;
+            rx[2] = _serial->read();
+            Serial.print("<-- ");
+            Serial.print(rx[0], BIN);
+            Serial.print(" ");
+            Serial.print(rx[1], BIN);
+            Serial.println(rx[2], BIN);
+            resp = rx[1];
             break;
     }
 
