@@ -19,7 +19,7 @@
 #include "Arduino.h"
 #include <Wire.h>
 #include <SPI.h>
-#include <SoftwareSerial.h>
+#include <Stream.h>
 #include "Adafruit_MFRC630_regs.h"
 #include "Adafruit_MFRC630_consts.h"
 
@@ -29,7 +29,7 @@
 #define MFRC630_VERBOSITY_RELEASE     (0)   /* No debug output */
 #define MFRC630_VERBOSITY_DEBUG       (1)   /* Debug message output */
 #define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
-#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_TRACE)
+#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_DEBUG)
 
 #define MFRC630_ALWAYS_DISP_ERRORS    (1)
 
@@ -116,10 +116,10 @@ class Adafruit_MFRC630
     /**
      * SW serial bus constructor
      *
-     * @param serial        The SoftwareSerial instance to use
+     * @param serial        The Serial instance to use
      * @param pdown_pin     The power down pin number (required)/
      */
-    Adafruit_MFRC630(SoftwareSerial* serial, int8_t pdown_pin = -1);
+    Adafruit_MFRC630(Stream* serial, int8_t pdown_pin = -1);
 
     /**
      * Initialises the IC and performs some simple system checks.
@@ -302,7 +302,7 @@ class Adafruit_MFRC630
     int8_t _pdown;
     uint8_t _i2c_addr;
     TwoWire* _wire;
-    SoftwareSerial* _serial;
+    Stream* _serial;
     int8_t _cs;
     enum mfrc630_transport _transport;
 

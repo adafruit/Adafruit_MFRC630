@@ -60,7 +60,7 @@ void Adafruit_MFRC630::write8(byte reg, byte value)
           break;
       case MFRC630_TRANSPORT_SERIAL:
           /* TODO: Adjust for 10-bit protocol! */
-          _serial->write(reg);
+          _serial->write((reg << 1) | 0x00);
           _serial->write(value);
           break;
   }
@@ -100,11 +100,14 @@ void Adafruit_MFRC630::writeBuffer(byte reg, uint16_t len, uint8_t *buffer)
           SPI.transfer((reg << 1) | 0x00);
           for (uint8_t i = 0; i < len; i++){
               SPI.transfer(buffer[i]);
+              TRACE_PRINT("0x");
+              TRACE_PRINT(buffer[i], HEX);
+              TRACE_PRINT(" ");
           }
           digitalWrite(_cs, HIGH);
           break;
       case MFRC630_TRANSPORT_SERIAL:
-          /* TODO: Adjust for 10-bit protocol! */
+          _serial->write((reg << 1) | 0x00);
           for (uint16_t i = 0; i < len; i++)
           {
             _serial->write(buffer[i]);
@@ -126,8 +129,7 @@ byte Adafruit_MFRC630::read8(byte reg)
 {
     uint8_t resp = 0;
     uint8_t tx[2] = { 0 };
-    uint8_t rx[3] = { 0 };
-    uint16_t uart_tx;
+    uint8_t rx[2] = { 0 };
     uint8_t timeout = 0xFFF;
 
     TRACE_TIMESTAMP();
@@ -160,38 +162,22 @@ byte Adafruit_MFRC630::read8(byte reg)
             resp = rx[1];
             break;
         case MFRC630_TRANSPORT_SERIAL:
-            /*
-             * UART uses a 10-bit protocol where the output format is:
-             * SA[0]:A0:A1:A2:A3:A4:A5:A6:RD[1]:SO[1]
-             */
-            uart_tx = (0 << 15) | (reverse8(reg) << 7) | (0x3 << 6);
-            //uart_tx = (0 << 15) | ((reg & 0x7F) << 8) | (0x3 << 6);
-            Serial.print("--> ");
-            Serial.println(uart_tx, BIN);
-            _serial->write((uint8_t)((uart_tx >> 8) & 0xFF));
-            _serial->write((uint8_t)(uart_tx & 0xFF));
-            while(_serial->available() < 3) {
+            tx[0] = (reg << 1) | 0x01;
+            _serial->write(tx[0]);
+            while(!_serial->available()) {
                 delay(1);
                 timeout--;
                 if (timeout == 0) {
-                    Serial.println("Timed out!");
                     return 0;
                 }
             }
-            /*
-             * The reponse format is:
-             * SA[0]:A0:A1:A2:A3:A4:A5:A6:A7:SO[1]
-             */
-            rx[0] = _serial->read();
-            rx[1] = _serial->read();
-            rx[2] = _serial->read();
-            Serial.print("<-- ");
-            Serial.print(rx[0], BIN);
-            Serial.print(" ");
-            Serial.print(rx[1], BIN);
-            Serial.print(" ");
-            Serial.println(rx[2], BIN);
-            resp = rx[1];
+            resp = _serial->read();
+            delay(1);
+            /* Check for stray byte(s) */
+            while (_serial->available()) {
+                _serial->read();
+                delay(1);
+            }
             break;
     }
 
@@ -297,10 +283,10 @@ Adafruit_MFRC630::Adafruit_MFRC630(enum mfrc630_transport transport,
 /**************************************************************************/
 /*!
     @brief  Instantiates a new instance of the Adafruit_MFRC630 class
-            using SW serial.
+            using the specified Serial block.
 */
 /**************************************************************************/
-Adafruit_MFRC630::Adafruit_MFRC630(SoftwareSerial* serial, int8_t pdown_pin)
+Adafruit_MFRC630::Adafruit_MFRC630(Stream* serial, int8_t pdown_pin)
 {
   /* Set the transport */
   _transport = MFRC630_TRANSPORT_SERIAL;
@@ -308,7 +294,7 @@ Adafruit_MFRC630::Adafruit_MFRC630(SoftwareSerial* serial, int8_t pdown_pin)
   /* Set the PDOWN pin */
   _pdown = pdown_pin;
 
-  /* Set the SoftwareSerial instance */
+  /* Set the Serial instance */
   _serial = serial;
 
   /* Disable I2C access */
@@ -350,8 +336,7 @@ bool Adafruit_MFRC630::begin()
           SPI.setClockDivider(SPI_CLOCK_DIV16);
           break;
       case MFRC630_TRANSPORT_SERIAL:
-          DEBUG_PRINTLN("Initialising SW serial");
-          _serial->begin(115200);
+          /* NOTE: 'Serial' has to be initialised in the calling sketch! */
           break;
   }
 
@@ -645,7 +630,18 @@ void Adafruit_MFRC630::printError(enum mfrc630errors err)
       case MFRC630_ERROR_EEPROM:
         ERROR_PRINTLN("EEPROM access!");
         break;
+      default:
+        ERROR_PRINT("Unhandled error code: ");
+        ERROR_PRINTLN(err, HEX);
+        break;
   }
+
+  /* Halt execution here if we're not in release mode! */
+#if MFRC630_VERBOSITY > MFRC630_VERBOSITY_RELEASE
+  while(1) {
+    delay(1);
+  }
+#endif
 }
 
 /**************************************************************************/
@@ -777,6 +773,14 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd)
   if ( (!(irqval & MFRC630IRQ0_RXIRQ) || (irqval & MFRC630IRQ0_ERRIRQ))) {
     DEBUG_TIMESTAMP();
     DEBUG_PRINTLN("ERROR: No RX flag set, transceive failed or timed out.");
+    /* Display the error message if ERROR IRQ is set. */
+    if (irqval && MFRC630IRQ0_ERRIRQ) {
+        uint8_t error = read8(MFRC630_REG_ERROR);
+        /* Only display the error if it isn't a timeout. */
+        if (error) {
+            printError((enum mfrc630errors)error);
+        }
+    }
     return 0;
   }
 

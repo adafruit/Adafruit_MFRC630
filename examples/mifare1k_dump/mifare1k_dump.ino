@@ -144,7 +144,7 @@ void setup() {
   Serial.println("Waiting for an ISO14443-A compatible card ...");
   while (!radio_mifare1K_dump_minimal())
   {
-    delay(50);
+    delay(500);
   }
 }
 

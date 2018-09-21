@@ -1,17 +1,10 @@
-#include <Wire.h>
 #include <Adafruit_MFRC630.h>
-
-#include <SoftwareSerial.h>
 
 /* Indicate the pin numbers where PDOWN/RX/TW are connected. */
 #define PDOWN_PIN         (A2)
-#define RX_PIN            (A3)
-#define TX_PIN            (A4)
-
-SoftwareSerial SWSerial(RX_PIN, TX_PIN);
 
 /* Use UART */
-Adafruit_MFRC630 rfid = Adafruit_MFRC630(&SWSerial, PDOWN_PIN);
+Adafruit_MFRC630 rfid = Adafruit_MFRC630(&Serial1, PDOWN_PIN);
 
 /* Prints out len bytes of hex data in table format. */
 static void print_buf_hex(uint8_t *buf, size_t len)
@@ -120,6 +113,7 @@ bool radio_mifare1K_dump_minimal(void)
  */
 void setup() {
   Serial.begin(115200);
+  Serial1.begin(115200);
 
   while (!Serial) {
     delay(1);
@@ -150,7 +144,7 @@ void setup() {
   Serial.println("Waiting for an ISO14443-A compatible card ...");
   while (!radio_mifare1K_dump_minimal())
   {
-    delay(50);
+    delay(500);
   }
 }
 
