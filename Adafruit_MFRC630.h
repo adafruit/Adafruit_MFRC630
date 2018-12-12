@@ -26,10 +26,14 @@
 #define MFRC630_I2C_ADDR              (0x28)
 
 /* Debug output level */
+/*
+ * NOTE: Setting this macro above RELEASE may require more SRAM than small
+ *       MCUs like the Atmel 32u4 can provide!
+ */
 #define MFRC630_VERBOSITY_RELEASE     (0)   /* No debug output */
 #define MFRC630_VERBOSITY_DEBUG       (1)   /* Debug message output */
 #define MFRC630_VERBOSITY_TRACE       (2)   /* Full packet trace dumps */
-#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_DEBUG)
+#define MFRC630_VERBOSITY             (MFRC630_VERBOSITY_RELEASE)
 
 #define MFRC630_ALWAYS_DISP_ERRORS    (1)
 

@@ -146,7 +146,7 @@ byte Adafruit_MFRC630::read8(byte reg)
               _wire->beginTransmission(_i2c_addr);
               _wire->write(reg);
               _wire->endTransmission();
-              _wire->requestFrom(_i2c_addr, 1);
+              _wire->requestFrom((uint8_t)_i2c_addr, (uint8_t)1);
             #endif
             /* Dump the response into the supplied buffer */
             resp = _wire->read();
