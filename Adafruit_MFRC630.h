@@ -41,9 +41,9 @@
 #if MFRC630_VERBOSITY >= MFRC630_VERBOSITY_DEBUG
   #define DEBUG_PRINT(...)   Serial.print(__VA_ARGS__)
   #define DEBUG_PRINTLN(...) Serial.println(__VA_ARGS__)
-  #define DEBUG_TIMESTAMP()  Serial.print("\tD [+"); \
+  #define DEBUG_TIMESTAMP()  Serial.print(F("\tD [+")); \
                              Serial.print(millis()); \
-                             Serial.print("ms] ");
+                             Serial.print(F("ms] "));
 #else
   #define DEBUG_PRINT(...)
   #define DEBUG_PRINTLN(...)
@@ -54,9 +54,9 @@
 #if MFRC630_VERBOSITY >= MFRC630_VERBOSITY_TRACE
   #define TRACE_PRINT(...)   Serial.print(__VA_ARGS__)
   #define TRACE_PRINTLN(...) Serial.println(__VA_ARGS__)
-  #define TRACE_TIMESTAMP()  Serial.print("\t. [+"); \
+  #define TRACE_TIMESTAMP()  Serial.print(F("\t. [+")); \
                              Serial.print(millis()); \
-                             Serial.print("ms] ");
+                             Serial.print(F("ms] "));
 #else
   #define TRACE_PRINT(...)
   #define TRACE_PRINTLN(...)
@@ -67,15 +67,15 @@
 #if MFRC630_ALWAYS_DISP_ERRORS
   #define ERROR_PRINT(...)   Serial.print(__VA_ARGS__)
   #define ERROR_PRINTLN(...) Serial.println(__VA_ARGS__)
-  #define ERROR_TIMESTAMP()  Serial.print("\t! [+"); \
+  #define ERROR_TIMESTAMP()  Serial.print(F("\t! [+")); \
                              Serial.print(millis()); \
-                             Serial.print("ms] ");
+                             Serial.print(F("ms] "));
 #else
 #define ERROR_PRINT(...)   DEBUG_PRINT(__VA_ARGS__)
 #define ERROR_PRINTLN(...) DEBUG_PRINTLN(__VA_ARGS__)
-#define ERROR_TIMESTAMP()  DEBUG_PRINT("\t! [+"); \
+#define ERROR_TIMESTAMP()  DEBUG_PRINT(F("\t! [+")); \
                            DEBUG_PRINT(millis()); \
-                           DEBUG_PRINT("ms] ");
+                           DEBUG_PRINT(F("ms] "));
 #endif
 
 enum mfrc630_transport {
