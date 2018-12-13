@@ -84,6 +84,9 @@ enum mfrc630_transport {
     MFRC630_TRANSPORT_SERIAL = 2
 };
 
+/**
+ * Driver for the Adafruit MFRC630 RFID front-end.
+ */
 class Adafruit_MFRC630
 {
   public:
