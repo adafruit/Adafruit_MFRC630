@@ -333,7 +333,9 @@ bool Adafruit_MFRC630::begin()
           SPI.begin();
           SPI.setDataMode(SPI_MODE0);
           SPI.setBitOrder(MSBFIRST);
-          SPI.setClockDivider(SPI_CLOCK_DIV16);
+          #ifdef SPI_CLOCK_DIV16
+          SPI.setClockDivider(MFRC630_SPI_CLOCKDIV);
+          #endif
           break;
       case MFRC630_TRANSPORT_SERIAL:
           /* NOTE: 'Serial' has to be initialised in the calling sketch! */
