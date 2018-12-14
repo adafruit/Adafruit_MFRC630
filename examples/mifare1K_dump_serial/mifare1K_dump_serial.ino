@@ -1,5 +1,12 @@
 #include <Adafruit_MFRC630.h>
 
+
+/* This example requires a second serial part, so no Uno :( */
+#ifndef HAVE_HWSERIAL1
+void setup() { Serial.begin(115200); Serial.println("This board is not supported!"); }
+void loop() { delay(10); }
+#else
+
 /* Indicate the pin number where PDOWN is connected. */
 #if defined(ESP8266)
 #define PDOWN_PIN         (A0)
@@ -159,3 +166,5 @@ void loop() {
   digitalWrite(LED_BUILTIN, LOW);
   delay(500);
 }
+
+#endif /* HAVE_HWSERIAL1 */
