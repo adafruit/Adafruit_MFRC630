@@ -2,7 +2,11 @@
 #include <Adafruit_MFRC630.h>
 
 /* Indicate the pin number where PDOWN is connected. */
+#if defined(ESP8266)
+#define PDOWN_PIN         (A0)
+#else
 #define PDOWN_PIN         (A2)
+#endif
 
 /* Show me some mojic! */
 #define MOJIC_TRICK       (0)

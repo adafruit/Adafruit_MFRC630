@@ -1,9 +1,14 @@
 #include <Wire.h>
 #include <Adafruit_MFRC630.h>
 
-/* Indicate the pin number where PDOWN and CS/SSEL are connected. */
+/* Indicate the pin number where PDOWN is connected. */
+#if defined(ESP8266)
+#define PDOWN_PIN         (A0)
+#define SSEL_PIN          (15)
+#else
 #define PDOWN_PIN         (A2)
 #define SSEL_PIN          (A4)
+#endif
 
 /* Use HW SPI */
 Adafruit_MFRC630 rfid = Adafruit_MFRC630(MFRC630_TRANSPORT_SPI,
