@@ -13,6 +13,9 @@
   Written by Kevin Townsend for Adafruit Industries.
   BSD license, all text above must be included in any redistribution
  ***************************************************************************/
+
+#include <cstdint>
+
 #ifndef __ADAFRUIT_MFRC630_CONSTS_H__
 #define __ADAFRUIT_MFRC630_CONSTS_H__
 
