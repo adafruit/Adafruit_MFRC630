@@ -753,7 +753,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd) {
     DEBUG_TIMESTAMP();
     DEBUG_PRINTLN(F("ERROR: No RX flag set, transceive failed or timed out."));
     /* Display the error message if ERROR IRQ is set. */
-    if (irqval && MFRC630IRQ0_ERRIRQ) {
+    if (irqval & MFRC630IRQ0_ERRIRQ) {
       uint8_t error = read8(MFRC630_REG_ERROR);
       /* Only display the error if it isn't a timeout. */
       if (error) {
@@ -795,6 +795,7 @@ uint16_t Adafruit_MFRC630::iso14443aCommand(enum iso14443_cmd cmd) {
  * https://www.nxp.com/docs/en/application-note/AN10833.pdf
  */
 uint8_t Adafruit_MFRC630::iso14443aSelect(uint8_t *uid, uint8_t *sak) {
+  (void)sak;
   DEBUG_TIMESTAMP();
   DEBUG_PRINTLN(F("Selecting an ISO14443A tag"));
 
