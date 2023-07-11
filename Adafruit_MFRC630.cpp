@@ -392,8 +392,8 @@ bool Adafruit_MFRC630::begin() {
     return false;
   }
 
-  /* If !1.8, there was a problem */
-  if (ver != 0x18) {
+  /* check for valid silicon revisions. */
+  if (!(ver == 0x18 || ver == 0x1A)) {
     DEBUG_TIMESTAMP();
     DEBUG_PRINTLN(F("FAILED!"));
     return false;
