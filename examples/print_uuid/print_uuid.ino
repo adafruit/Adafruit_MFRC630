@@ -7,31 +7,14 @@
 /* Use the default I2C address */
 Adafruit_MFRC630 rfid = Adafruit_MFRC630(PDOWN_PIN);
 
-/* Prints out len bytes of hex data in table format. */
-static void print_buf_hex(uint8_t *buf, size_t len)
-{
-  for (uint8_t i = 0; i < len; i++)
-  {
-    Serial.print("0x");
-    if (buf[i] < 16)
-    {
-      Serial.print("0");
-    }
-    Serial.print(buf[i], HEX);
-    Serial.print(" ");
-  }
-  Serial.println(" ");
-}
 /*
- * This more concise loop show the minimim requirements to dump the first 1K
- * of memory from a Mifare Classic or Mifare Plus compatible card. No meaningful
+ * This more concise loop show the minimim requirements to dump the UUID of
+ * a Mifare Classic or Mifare Plus compatible card / tag. No meaningful
  * error-handling or debug output is present here, so this code is intended
  * as a simple starting point for further work.
  */
 bool radio_mifare1K_dump_minimal(void)
 {
-    bool rc;
-
     /* Put the IC in a known-state. */
     rfid.softReset();
 
@@ -56,7 +39,9 @@ bool radio_mifare1K_dump_minimal(void)
             Serial.print(" ");
         }
         Serial.println("");
+        return true;
     }
+    return false;
 }
 
 /**
