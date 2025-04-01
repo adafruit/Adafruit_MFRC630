@@ -72,8 +72,30 @@ void Adafruit_MFRC630::write8(byte reg, byte value) {
     break;
   case MFRC630_TRANSPORT_SERIAL:
     /* TODO: Adjust for 10-bit protocol! */
-    _serial->write((reg << 1) | 0x00);
+    _serial->write(reg & 0x7f));
     _serial->write(value);
+
+    /* TODO: use global timeout */
+    uint8_t timeout = 0xFF;
+    while (!_serial->available()) {
+      delay(1);
+      timeout--;
+      if (timeout <= 0) {
+        ERROR_PRINTLN("Serial timeout!");
+      }
+    }
+
+    // MFRC63003 responds with write address. check to verify write operation
+    uint8_t response = _serial->read();
+    if (reg != response) {
+      ERROR_PRINT("Write NOT SUCCESFUL. address: 0x");
+      ERROR_PRINT(reg, HEX);
+      ERROR_PRINT("\tdata: 0x");
+      ERROR_PRINT(value, HEX);
+      ERROR_PRINT("\tresponse: 0x");
+      ERROR_PRINTLN(response, HEX);
+    }
+
     break;
   }
 }
@@ -117,12 +139,8 @@ void Adafruit_MFRC630::writeBuffer(byte reg, uint16_t len, uint8_t *buffer) {
     digitalWrite(_cs, HIGH);
     break;
   case MFRC630_TRANSPORT_SERIAL:
-    _serial->write((reg << 1) | 0x00);
     for (uint16_t i = 0; i < len; i++) {
-      _serial->write(buffer[i]);
-      TRACE_PRINT(F("0x"));
-      TRACE_PRINT(buffer[i], HEX);
-      TRACE_PRINT(F(" "));
+      write8(reg + i, buffer[i]);
     }
     break;
   }
@@ -170,12 +188,13 @@ byte Adafruit_MFRC630::read8(byte reg) {
     resp = rx[1];
     break;
   case MFRC630_TRANSPORT_SERIAL:
-    tx[0] = (reg << 1) | 0x01;
+    tx[0] = reg | 0x80;
     _serial->write(tx[0]);
     while (!_serial->available()) {
       delay(1);
       timeout--;
       if (timeout == 0) {
+        ERROR_PRINTLN("Serial Timeout!");
         return 0;
       }
     }
@@ -183,7 +202,9 @@ byte Adafruit_MFRC630::read8(byte reg) {
     delay(1);
     /* Check for stray byte(s) */
     while (_serial->available()) {
-      _serial->read();
+      uint8_t stray_byte = _serial->read();
+      ERROR_PRINT("ERROR: STRAY BYTE: 0x");
+      ERROR_PRINTLN(stray_byte, HEX);
       delay(1);
     }
     break;
@@ -371,8 +392,8 @@ bool Adafruit_MFRC630::begin() {
     return false;
   }
 
-  /* If !1.8, there was a problem */
-  if (ver != 0x18) {
+  /* check for valid silicon revisions. */
+  if (!(ver == 0x18 || ver == 0x1A)) {
     DEBUG_TIMESTAMP();
     DEBUG_PRINTLN(F("FAILED!"));
     return false;
